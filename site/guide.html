@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Guide · Waterfall</title><link rel="stylesheet" href="style.css"></head><body><header><a class="wordmark" href="index.html">Waterfall</a><nav aria-label="Main"><a href="index.html">Overview</a><a href="guide.html" aria-current="page">Guide</a><a href="reference.html" >Reference</a></nav></header><main class="prose"><h1>Using Waterfall</h1><p class="lede">Start with one tactic. Add effort and useful lemmas when the proof needs them.</p>
+<section id="install"><h2>Install with Lake</h2><p>Place this checkout next to your Lean project and add the dependency below to <code>lakefile.toml</code>. Both projects should use <code>leanprover/lean4:v4.30.0</code>.</p><pre><code>[[require]]
+name = "waterfall"
+path = "../Waterfall"</code></pre><p>Run <code>lake update</code>, then <code>import Waterfall</code>. This is a local candidate: a public Git URL and Reservoir coordinate will be documented after publication.</p></section>
+<section><h2>Supply definitions and lemmas</h2><pre><code>import Waterfall
+
+namespace Example
+def append : List Nat → List Nat → List Nat
+  | [], ys => ys
+  | x :: xs, ys => x :: append xs ys
+
+example (xs : List Nat) : append xs [] = xs := by
+  waterfall [append]
+end Example</code></pre><p>Local hypotheses and relevant definitions from the current module are considered automatically. Imported definitions should be supplied when needed. Put helper lemmas in the same bracketed list.</p><p>The <a href="../Docs/Guide.lean">Lean tutorial</a> is compiled by the test suite. You can also invoke Waterfall on a remaining branch after manual introductions or induction.</p></section>
+<section><h2>Choose a mode</h2><pre><code>waterfall (mode := .search) (effort := 3000)
+waterfall (mode := .committed) (effort := 3000)</code></pre><p>The default search backtracks through a complete continuation, including sibling goals. Its iterative schedule explores increasing structural depth and solver strength.</p><p>Committed mode tries ordinary work across the agenda before induction and commits after the first local progress. It can restore the original conjecture once per trial. It retries earlier goals after a sibling changes shared witnesses. It prunes alternatives, so extra effort cannot recover every path it discards.</p></section>
+<section><h2>Understand the budget</h2><p><code>effort</code> counts dispatched operations, including failed attempts and charged checkpoint restarts. Enumeration and ordering consume time and heartbeats but are not separate attempts. More effort funds deeper plans and stronger operations.</p><p>Lean's enclosing <code>maxHeartbeats</code> and <code>maxRecDepth</code> still apply. The finer <code>attemptHeartbeats</code> option is in raw heartbeats; Lean's <code>maxHeartbeats</code> option is in thousands of raw heartbeats. An operation's slice grows with strength and never exceeds the enclosing remaining allowance.</p></section>
+<section><h2>Inspect a search</h2><p><code>waterfall?</code> prints attempts, nodes, trial depth and strength, raw heartbeat use and retained operation labels. The labels are a diagnostic summary, not a replayable tactic script.</p><p>Import <code>Waterfall.Observe</code> to measure internal wall-clock cost, capture actions and replay a checked plan. It is separate from the default import. See the <a href="reference.html">reference</a> and <a href="../Tests/Observe.lean">tested examples</a>.</p></section></main><footer><span>Waterfall · Lean 4.30.0</span><span><a href="../LICENSE">Apache-2.0</a> · Local release candidate</span></footer></body></html>

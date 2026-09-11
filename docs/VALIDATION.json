@@ -1,0 +1,50 @@
+{
+  "start_utc": "2026-09-11T02:52:56.965960+00:00",
+  "end_utc": "2026-09-11T02:54:42.656450+00:00",
+  "returncode": 0,
+  "host": "dl",
+  "cpu": 0,
+  "runtime_threads": 1,
+  "source_drift": [],
+  "log_sha256": "b82e10f7e39df982387c2e3c3d090eedb493aa9adcb11f83e023c4c446f2ff4f",
+  "checks": [
+    "lake build WaterfallTests",
+    "lake build",
+    "lake test",
+    "python3 scripts/check_docs.py",
+    "consumer: lake build",
+    "consumer: lake env leanchecker Consumer"
+  ],
+  "sources": {
+    "Docs/Guide.lean": "2c585f3eeff3b60a66c749d5663f04d11ba0a9783fd55ae0f9a4c334febffa8f",
+    "Tests/Canonical.lean": "f3ad650f9ff548565d827c0f66fa62c54248739453039c7249016a0e53136557",
+    "Tests/ContextPolicy.lean": "711aef17c00b556a34bdb26cbaa334ac5da3ba821db2aa4dc716040cce7f30d1",
+    "Tests/Core.lean": "5a2744b6ba3e1afde3322174dd0c389c27e4b7fa1ad8da55bd75eb0fcb59fae2",
+    "Tests/DefaultPolicy.lean": "df6c841082604416bb92806b392d88af34bcda929116f7933805e53e23e5ee97",
+    "Tests/Exhaustion.lean": "5f825eaf4baf2de028545ada16a2c2dc23b9363999b8dae7701682be574f8f85",
+    "Tests/Import.lean": "9835fea44c2ab5ea7eeae44255134ef4a5eb7c4c372753169998f22e5c107da4",
+    "Tests/Observe.lean": "f664cb2807ce9ca74cd216fbfa715c50d65ce811890e3b3042ea2ecf46dabeb8",
+    "Tests/Options.lean": "c50315f27c328d7cbf9b0e6ef66b9035c64ca7708e85cd0388cdbeb073914c14",
+    "Tests/Schedule.lean": "e5d9daed92332febcbc02e88056999128eb94482a59db33eeb4c03bdbbd1896f",
+    "Tests/SearchPolicy.lean": "6570f55377704ab0eb189c69cde05ef052bef3894a7f63763227e3143c481d3f",
+    "Tests/TrialPolicy.lean": "475d8ac889e167c67cf4060dc456c19f2eddebc3beebe5c5739b3bbf57423b70",
+    "Waterfall.lean": "eadf33309ab0e05eadeb22a9d472b0cd030df3e1c2f46117d19a0d4a1b64f44d",
+    "Waterfall/Canonical.lean": "f3478c170783bdcf510ef84fa86b7a8e42422b7536df4a4b05d0de99a39962af",
+    "Waterfall/Choices.lean": "9f9c0876996bb992c298b6b4aaad5966755dff40da0837d74faece4aadec8421",
+    "Waterfall/Committed.lean": "b8d0b7847f88b737b66f8a5ba5c5ee879e71929e536fad0cdf48cf645da43b70",
+    "Waterfall/Core.lean": "f3bd0711709ad24d5156dd1571ba9eb56c8443555f8f723a08af6d5e19675187",
+    "Waterfall/Observe.lean": "005691d9ce8467d3343c23f484aa77d3d229ddb1e3648cda913ccc2f5d4eea48",
+    "Waterfall/Protocol.lean": "4eee90a3a1b00e5bfbabcc6719f0994f5c0bce98dabc1101912396c00583187d",
+    "Waterfall/Tactic.lean": "63f11d3dd4c8eded1f4de8e416de5da2bed0212df28214c39c9bfab9d81d8e35",
+    "consumer/Consumer.lean": "6be93ed2bee4faa7ec95e033be2f3af697d212bfc6092a100a1ac9eb7b81a91b"
+  },
+  "publication": "Local preparation only; no remote, tag, deployment or registry submission.",
+  "website": {
+    "configurations": 48,
+    "success": true,
+    "desktop": "1280x1000 rendered and inspected",
+    "mobile": "390x844 rendered and inspected",
+    "options_js_sha256": "7c4b1123bd4a2658e45e1266c562e8d37bc8f42d750abd3d2f4a072f79f58560",
+    "publication": "none"
+  }
+}

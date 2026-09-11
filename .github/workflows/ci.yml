@@ -1,0 +1,26 @@
+name: Check Waterfall
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leanprover/lean-action@v1
+        with:
+          build: "true"
+          test: "true"
+          use-mathlib-cache: "false"
+      - run: python3 scripts/check_docs.py
+      - run: python3 scripts/size.py
+      - run: lake build
+        working-directory: consumer
+      - run: lake env leanchecker Consumer
+        working-directory: consumer

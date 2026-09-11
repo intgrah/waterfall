@@ -1,0 +1,82 @@
+# API reference
+
+Lean doc comments provide hover documentation in the editor. `Docs/Guide.lean`
+is a compiled tutorial. The library exports the following small interfaces.
+
+| Module | Responsibility |
+| --- | --- |
+| `Waterfall` / `Waterfall.Tactic` | `waterfall`, `waterfall?`, `Mode`, `Options` |
+| `Waterfall.Core` | `Config`, `Stats`, `run`, engine transitions and root validation |
+| `Waterfall.Protocol` | `Move`, `Candidate`, `Job`, `Node`, `Space`, `SearchPolicy`, `Hooks` |
+| `Waterfall.Choices` | Generic lazy selection, filtering, collection and commitment |
+| `Waterfall.Committed` | ACL2-inspired callbacks over the shared engine |
+| `Waterfall.Observe` | Optional timing, control middleware, action recording and replay |
+| `Waterfall.Canonical` | Optional canonical goal encoding for replay checks |
+
+## Tactic interface
+
+`Options` extends engine `Config` with `mode : Mode := .search`. Standard Lean configuration syntax accepts
+individual fields or `(config := { ... })`. The adapter passes
+`mode.hooks` and `Options.toConfig` to `run`. Custom callback functions are
+configured through `run`, preserving the arbitrary typed policy state interface.
+It adds no proof-search algorithm.
+
+`run (cfg : Config) (rules : Array (TSyntax term) := #[]) (hooks : Hooks := {})`
+runs in `TacticM` and returns `Stats` after closing all original goals. Failure
+restores Lean's original proof state. Effort and external observer effects are
+not rolled back. `Stats.choices` contains retained labels in reverse proof order.
+
+## Search and checkpoints
+
+`Choices α = (α → TacticM Bool) → TacticM Bool` is effectful lazy enumeration.
+Returning `true` from a visitor stops it. `Choices.first` commits to the first
+emitted choice even if its downstream continuation fails; `filter` retains a
+subsequence; `collect` eagerly materializes all emitted choices and pays their
+cost.
+
+A `Node σ` contains a saved Lean proof state, all pending `Job`s, typed policy
+state and the retained plan. Each job has its own remaining structural allowance
+and ancestry. Never combine jobs from one checkpoint with Lean state from another.
+
+A `SearchPolicy` supplies its state type, initial state and
+`choose : Space State → Choices (Node State)`. `Space.expand` enumerates metered
+transitions for a selected goal and operation batches. `Space.restart` restores
+a compatible checkpoint, installs new policy state and charges an attempt.
+Already funded frontier entries remain selectable at attempt exhaustion; new
+expansion and restart are refused. Ambient limits still constrain traversal.
+
+## Hooks
+
+- `policy`: choose transitions, agenda order and traversal.
+- `trials`: finite batches of depth/positive-strength pairs by round.
+- `batches`: lazy structural groups; each original group must occur exactly once.
+- `order`: a permutation of candidate selectors within a batch; validated.
+- `cost`: effective path cost under the goal's context and rollback. Structural
+  costs must respect the engine's positive intrinsic floor.
+- `extraMoves`: append general operations without renumbering the originals.
+- `around`: polymorphic middleware around a span and continuation.
+- `accepted`: observe only the retained complete proof's selections, in reverse order.
+
+An observer calls its continuation once and leaves proof state alone. Resource
+control middleware can reduce allowances or abort spans. The engine owns proof
+acceptance and rollback. Ordering and cost callbacks see temporary state;
+external IO side effects remain the callback author's responsibility.
+
+## Observation and replay
+
+Import `Waterfall.Observe` explicitly. `capture` returns a `Report` with success,
+error, optional timing rows and an optional `Plan`. Timing rows distinguish
+inclusive and exclusive wall-clock nanoseconds and raw heartbeats. A `Control`
+can supply smaller per-span slices and a cooperative deadline. Deadlines are
+checked between spans; a process timeout belongs to the calling harness.
+
+Plans store versioned action selectors, goal/agenda encodings, selected focus,
+strength, costs and generated-child counts. Replay validates these against the
+same operations and supplied rules; it does not search for another route. Pass
+a stable source/theory key and retain the exact source version. Changed
+operations, selector order, costs or unrecorded provider state can invalidate a
+plan. Final root validation and Lean's kernel remain authoritative.
+
+See `Tests/SearchPolicy.lean` for a FIFO frontier, scored successors, commitment,
+sibling dependencies and charged checkpoint recovery; see `Tests/Observe.lean`
+for timing and replay examples.

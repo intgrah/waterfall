@@ -1,0 +1,20 @@
+name = "waterfall"
+version = "0.1.0-rc.1"
+description = "Small, configurable proof search for inductive Lean goals"
+keywords = ["automation", "induction", "tactic", "software-verification"]
+license = "Apache-2.0"
+licenseFiles = ["LICENSE"]
+readmeFile = "README.md"
+# Release preparation is local. Enable indexing only when publication is approved.
+reservoir = false
+defaultTargets = ["Waterfall"]
+testDriver = "WaterfallTests"
+
+[[lean_lib]]
+name = "Waterfall"
+
+[[lean_lib]]
+name = "WaterfallTests"
+roots = ["Tests.Core", "Tests.Canonical", "Tests.Observe", "Tests.ContextPolicy",
+  "Tests.DefaultPolicy", "Tests.Exhaustion", "Tests.SearchPolicy", "Tests.Schedule",
+  "Tests.TrialPolicy", "Tests.Options", "Tests.Import", "Docs.Guide"]

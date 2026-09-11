@@ -1,0 +1,7 @@
+name = "waterfall-consumer"
+defaultTargets = ["Consumer"]
+[[require]]
+name = "waterfall"
+path = ".."
+[[lean_lib]]
+name = "Consumer"

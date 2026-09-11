@@ -1,0 +1,31 @@
+{
+  "source_repository": "lean-waterfall",
+  "commit": "af28d456b0fea4272f6cf414a4363d0384dc903f",
+  "files": {
+    "WFCore/Protocol.lean": {
+      "sha256": "a2e0b0ac58572b3d8802d16dd287d2655770d96d8463bf8fe3629fa05e382cf0",
+      "destination": "Waterfall/Protocol.lean"
+    },
+    "WFCore/Choices.lean": {
+      "sha256": "1f4bb10206437e2f1954a647ef8dc94a73e7b6549a20375e748f56d4eb663981",
+      "destination": "Waterfall/Choices.lean"
+    },
+    "WFCore/Committed.lean": {
+      "sha256": "f076b308a72d14cee5708dd5b89d0bc8085f763ef935473f4709910c882a98d7",
+      "destination": "Waterfall/Committed.lean"
+    },
+    "WFCore/Observe.lean": {
+      "sha256": "1c44ae678ece224e18890d0ff496b4c7d573fb44006fa85fe1ea49445619f8e4",
+      "destination": "Waterfall/Observe.lean"
+    },
+    "WFCore/Canonical.lean": {
+      "sha256": "117444d3dbe766cd4f38b4caab411bbe3dfb17f3f02ae8eb6bfe06a0f68250ed",
+      "destination": "Waterfall/Canonical.lean"
+    },
+    "WFCore.lean": {
+      "sha256": "7ed3eaf1f4d3552497e4338dd45f67e232b62005f4da61eea17ba9afe1efb072",
+      "destination": "Waterfall/Core.lean"
+    }
+  },
+  "adaptation": "Rename WFCore to Waterfall, separate syntax from the engine, add one standard configured tactic interface. No inference changes. Excludes legacy waterfall, discovery, corpora and research history."
+}
