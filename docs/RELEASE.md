@@ -11,6 +11,12 @@ static website, and an independent consumer fixture. Library source is separated
 from optional observation and replay. Research corpora and lemma-discovery
 experiments are excluded.
 
+The [adversarial review](reviews/2026-09-11/README.md) identified three existing
+defects. Repair cancelled-worker heartbeat accounting and the committed sibling
+scan before public release; resolve or explicitly document the progress-check
+restriction on extensions. Keep their behavioral changes separate from the
+validated readability refactor.
+
 Before publication, after maintainer approval:
 
 1. Approve public visibility for the existing repository and add the chosen Git

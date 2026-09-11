@@ -91,6 +91,12 @@ for timing and replay examples.
 
 ## Parallel execution
 
+Known defect: a cooperatively interrupted worker currently omits its final
+heartbeat debit. Attempt accounting is still shared, but aggregate heartbeat
+accounting needs the repair recorded in the
+[adversarial review](reviews/2026-09-11/README.md). The resource contract below
+describes the intended behavior; the cancellation path does not yet meet it.
+
 `Parallel.run cpus cfg rules withHooks` runs the same engine in isolated workers.
 `withHooks` receives a continuation accepting `Hooks`; call it once. Allocate
 mutable observers inside this function so each worker owns separate IO references:

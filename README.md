@@ -113,6 +113,11 @@ The inference engine has 499 noncomment lines. Including its protocol gives
 interface and parallel scheduler, is 835. Optional observation adds 316 lines. These counts include
 local helpers; the package does not claim a sub-500-line complete import.
 
+The [independent adversarial review](docs/reviews/2026-09-11/README.md)
+records three reproduced, pre-existing issues to address separately: cancelled
+worker heartbeat accounting, committed induction's sibling scan, and progress
+detection for general extensions. The package remains an unreleased candidate.
+
 The tests include backtracking, shared witnesses, exhaustion, commitment,
 configuration, checkpoint recovery and recorded-plan replay. Proofs are checked
 by Lean; successful return requires all original obligations to be complete.

@@ -1,7 +1,7 @@
 {
-  "implementation_commit": "8280f1611d112e36c355c4ebb14556db5e0471ea",
+  "implementation_commit": "b859160c2580d4f1109aeb8b5d966851b24b8d7c",
   "toolchain": "leanprover/lean4:v4.30.0",
-  "validated_utc": "2026-09-11T20:22:25.362157+00:00",
+  "validated_utc": "2026-09-11T20:48:53.992720+00:00",
   "checks": [
     "lake build Waterfall Waterfall.Observe",
     "lake env lean -j2 Tests/Parallel.lean",
@@ -11,7 +11,8 @@
     "python3 scripts/size.py",
     "python3 scripts/build_site.py",
     "consumer: lake build",
-    "consumer: lake env leanchecker Consumer"
+    "consumer: lake env leanchecker Consumer",
+    "10 before/after reference proof plans compared byte-for-byte"
   ],
   "execution": {
     "host": "dl",
@@ -24,16 +25,16 @@
     "consumer_loaded_updated_core": true
   },
   "noncomment_lines": {
-    "Core.lean": 496,
-    "Core_with_protocol": 595,
+    "Core.lean": 499,
+    "Core_with_protocol": 619,
     "Parallel.lean": 105,
-    "default_import": 811,
-    "optional_observation_import": 911
+    "default_import": 835,
+    "optional_observation_import": 935
   },
   "evidence": {
-    "receipt_sha256": "10fd3df2e7e685b30d9d67dc420187b387ea5b73b05bbfb47cf75f63ed27c184",
-    "log_sha256": "16d3f74859873b2906521401047ad9fcbddc1a311ddf54b60c6f20690295a250",
-    "archive": "Parent research repository: docs/reviews/2026-09-11/lambda-fixes-parallel/validation and development-evidence.tar.gz"
+    "receipt_sha256": "c42338f67f5701fba6d431d7128d4b7ea65ab5c46111b38d29e5b332ad7987ec",
+    "log_sha256": "654a210a8b44054240b915e497a27f5b571adff89f8edd5c57beddc8c2a7b0c5",
+    "archive": "docs/reviews/2026-09-11/validation.json and *.log.gz"
   },
   "sources": {
     "Docs/Guide.lean": "cc55cada61ed10fc510c045e77ad7c688b49d311bb6df23ea87dc7443c8a269b",
@@ -57,15 +58,30 @@
     "Waterfall/Canonical.lean": "f3478c170783bdcf510ef84fa86b7a8e42422b7536df4a4b05d0de99a39962af",
     "Waterfall/Choices.lean": "9f9c0876996bb992c298b6b4aaad5966755dff40da0837d74faece4aadec8421",
     "Waterfall/Committed.lean": "f8a4f7202c68ceba2357e15f792e1d85f6d3f3a16e47171e865fddf1124bbd40",
-    "Waterfall/Core.lean": "2cf37a7f1432a85c37d31d515140a7769337efc51875000b71746859964009fe",
+    "Waterfall/Core.lean": "c901f300552438f04405f1b11b64923118b5c5bd5395137542f1629d58982068",
     "Waterfall/Observe.lean": "dcd5989da72eb17da78ac29cf453c5655297eaebda3bd35904c7bf9c5e13563d",
     "Waterfall/Parallel.lean": "72413818b413a177e07cc807e4eadc241b9a120e325d317d4121c3f0cc0a0770",
-    "Waterfall/Protocol.lean": "4f4e81e48900daf678926378d1629796e38045a84acdb1f797fc8e1ca2bb7bda",
+    "Waterfall/Protocol.lean": "7a6d13caeba02e0f08935e79f9809ae0b769d61e959eb68bf47c377fcc597206",
     "Waterfall/Tactic.lean": "88b7410132c0ad51a60508c848d1887f3c37074ad73a4530e64490b17531fd8a",
     "consumer/Consumer.lean": "f0e6eb190b73882b2c18f3e8d3b461472619302ff8f0bfd762bccb3624c81160",
     "consumer/lakefile.toml": "49dcc0575d7ef815cbd4950ee1d60b692587e7bfdcabf268f588c753935752fe",
     "consumer/lean-toolchain": "54727eec5cba149c18842e6deb5c41b369d66455c93ce135d7d5347c782b2325",
-    "lakefile.toml": "5407ec76ec80fe2eba3b75397f9910373499dcce2546831bd4f748b16d5c3d48",
+    "lakefile.toml": "12aa022e11327bbcf1f0ddf69b4724408c9760015f0dec613dddcf7eb6af48ca",
     "lean-toolchain": "54727eec5cba149c18842e6deb5c41b369d66455c93ce135d7d5347c782b2325"
-  }
+  },
+  "proof_plan_comparison": {
+    "runs": 10,
+    "goals": 5,
+    "modes": [
+      "search",
+      "committed"
+    ],
+    "byte_identical_plans": true,
+    "records_sha256": "55a7d1d73493608c5ea7579c62e9bdad9e5d4435dbe9557bf0ed091162a5cafc"
+  },
+  "private_ci": {
+    "url": "https://github.com/samth/Waterfall/actions/runs/34646259236",
+    "conclusion": "success"
+  },
+  "known_issues": "docs/reviews/2026-09-11/README.md; three pre-existing findings reproduced separately"
 }
