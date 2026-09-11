@@ -10,6 +10,12 @@ hypotheses and relevant definitions from the current module. It does not unfold
 all imported definitions. Add the imported definition when an otherwise simple
 recursive goal gets stuck.
 
+Both modes respect Lean's registered induction and case eliminators, including
+views of nonrecursive representations. Raw case analysis remains an alternative.
+The Lean option `tactic.customEliminators` controls these registered views.
+Local functions returning data can also discharge data-valued goals, including
+Type-valued induction hypotheses.
+
 ## Search or commitment
 
 The default `(mode := .search)` uses depth-first continuation search inside

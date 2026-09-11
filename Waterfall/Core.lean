@@ -157,6 +157,28 @@ private def closingMoves (rules : Array (TSyntax `term)) (strength : Nat) :
     tacticMove "simp" (← `(tactic| ($simp:tactic; done))),
     grind false, grind true].map (fun m => { m with cost := 0 }) ++ constructors
 
+private def customElim? (id : FVarId) (induction : Bool) : TacticM (Option Name) := do
+  if tactic.customEliminators.get (← getOptions) then
+    getCustomEliminator? #[mkFVar id] induction
+  else pure none
+
+-- A registered view may expose recursion hidden by a nonrecursive wrapper.
+-- Keep raw cases as an alternative; only the registered path needs elaboration.
+private def caseMoves (g : MVarId) (id : FVarId) (recursive : Bool)
+    (label : String) : TacticM (Array Move) := do
+  let recursive := recursive || (← customElim? id true).isSome
+  let raw : Move := {
+    cost := 1, major := some id, label := label
+    role := if recursive then `inversion else `shape
+    run := do
+      setGoals ((← g.cases id).toList.map (·.mvarId)) }
+  let some name ← customElim? id false | return #[raw]
+  return #[{ raw with label := label ++ " registered", run := g.withContext do
+    setGoals [g]
+    let target ← Term.exprToSyntax (mkFVar id)
+    let eliminator := mkIdent name
+    evalTactic (← `(tactic| cases $target:term using $eliminator:ident)) }, raw]
+
 /-- Plans capture only values already valid at the caller's snapshot. In
 particular, do not capture `exprToSyntax` holes created during enumeration.
 -/
@@ -198,16 +220,16 @@ private def operationBatch (g : MVarId) (rules : Array (TSyntax `term))
           let ty ← whnf d.type
           if let .const n _ := ty.getAppFn then
             if let some (.inductInfo info) := (← getEnv).find? n then
-              out := out.push {
-                cost := 1, role := (if info.isRec then `inversion else `shape), label := "cases hypothesis", run := do
-                  let cs ← g.cases d.fvarId
-                  setGoals (cs.toList.map (·.mvarId)) }
+              out := out ++ (← caseMoves g d.fvarId info.isRec "cases hypothesis")
     if group == .rules then
       -- Applying a rule also exposes metavariable-bearing premises. The search
       -- continuation retains all of them, allowing later premises to infer data.
+      let provingProp ← isProp (← g.getType)
       for d in lctx do
         if d.isImplementationDetail then continue
-        if ← isProp d.type then
+        -- Type-valued IHs construct derivations too. Avoid adding these irrelevant
+        -- applications to Prop goals; non-function values are handled by assumption.
+        if (← isProp d.type) || (!provingProp && (← whnf d.type).isForall) then
           out := out.push { cost := 1, label := "apply hypothesis", run := do
             setGoals (← g.apply (mkFVar d.fvarId)) }
       -- User rules remain syntax until this branch runs. Their local references
@@ -314,7 +336,7 @@ private def operationBatch (g : MVarId) (rules : Array (TSyntax `term))
         let ty ← whnf d.type
         let .const n _ := ty.getAppFn | continue
         let some (.inductInfo info) := (← getEnv).find? n | continue
-        if info.isRec then
+        if info.isRec || (← customElim? d.fvarId true).isSome then
           let kind : InductionKind := if (← isProp d.type) then .evidence else .data
           -- Generalize data not occurring in the major premise's type. Lean's
           -- revert closes over dependencies and builds the quantified motive.
@@ -360,9 +382,7 @@ private def operationBatch (g : MVarId) (rules : Array (TSyntax `term))
         -- Noninductive case analysis is another alternative, useful for tests and
         -- discriminants where induction would introduce irrelevant hypotheses.
         if !(← isProp d.type) then
-          out := out.push { cost := 1, role := (if info.isRec then `inversion else `shape), major := some d.fvarId, label := s!"cases {d.userName}", run := do
-            let cs ← g.cases d.fvarId
-            setGoals (cs.toList.map (·.mvarId)) }
+          out := out ++ (← caseMoves g d.fvarId info.isRec s!"cases {d.userName}")
     return out
 
 /-- Generating one group never requires enumerating a later group. Values captured
