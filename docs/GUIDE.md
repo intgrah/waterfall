@@ -17,9 +17,12 @@ Local functions returning data can also discharge data-valued goals, including
 Type-valued induction hypotheses.
 
 Backward constructor application also tries an outer constructor for one implicit
-data argument when ordinary unification needs a witness. Fields are inferred or
-left as proof obligations. This finite enumeration does not synthesize arbitrary
-nested terms or simultaneously guess multiple implicit arguments.
+data argument when ordinary unification needs a witness. The argument must have
+a visible inductive type in the constructor signature; a bare polymorphic type
+parameter is outside this fallback. Fields are inferred or left as proof
+obligations. This finite enumeration does not synthesize arbitrary nested terms,
+guess multiple implicit arguments simultaneously, or guess witnesses for general
+lemma applications.
 
 ## Search or commitment
 
