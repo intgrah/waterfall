@@ -69,4 +69,48 @@ example (P : Nat → Type) (h : ∀ n, P n) (n : Nat) : P n := by
 example (P : Nat → Type) (h : ∀ n, P n) (n : Nat) : P n := by
   waterfall (mode := .committed) (effort := 100)
 
+-- The conclusion cannot reduce until an implicit data argument is chosen.
+inductive Cover where
+  | keep
+  | bump
+  | add (amount : Nat)
+  | unused (value : Nat)
+
+def render : Cover → Nat → Nat
+  | .keep, n => n
+  | .bump, n => n + 1
+  | .add k, n => n + k
+  | .unused _, n => n
+
+inductive Wrapped (P : Nat → Prop) : Nat → Prop where
+  | pack {cover : Cover} {n : Nat} : P n → Wrapped P (render cover n)
+
+example (P : Nat → Prop) (n : Nat) (h : P n) : Wrapped P n := by
+  fail_if_success choose_operation "constructor CapabilityTest.Wrapped.pack"
+  choose_operation "constructor CapabilityTest.Wrapped.pack witness 1 CapabilityTest.Cover.keep"
+  exact h
+
+example (P : Nat → Prop) (n : Nat) (h : P n) : Wrapped P n := by
+  waterfall (effort := 1000)
+
+example (P : Nat → Prop) (n : Nat) (h : P n) : Wrapped P n := by
+  waterfall (mode := .committed) (effort := 1000)
+
+-- Constructor fields inferred from the target need no explicit term enumerator.
+example (P : Nat → Prop) (n k : Nat) (h : P n) : Wrapped P (n + k) := by
+  choose_operation "constructor CapabilityTest.Wrapped.pack witness 1 CapabilityTest.Cover.add"
+  exact h
+
+-- A field absent from the conclusion is still an obligation. Losing it would
+-- leave an unassigned metavariable hidden inside the final proof term.
+example (P : Nat → Prop) (n : Nat) (h : P n) : Wrapped P n := by
+  choose_operation "constructor CapabilityTest.Wrapped.pack witness 1 CapabilityTest.Cover.unused"
+  run_tac
+    unless (← getUnsolvedGoals).length == 2 do throwError "lost a constructor field"
+  all_goals first | exact h | exact 0
+
+example : True := by
+  fail_if_success have : Wrapped (fun _ => False) 0 := by waterfall (effort := 50)
+  trivial
+
 end CapabilityTest

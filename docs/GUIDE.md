@@ -16,6 +16,11 @@ The Lean option `tactic.customEliminators` controls these registered views.
 Local functions returning data can also discharge data-valued goals, including
 Type-valued induction hypotheses.
 
+Backward constructor application also tries an outer constructor for one implicit
+data argument when ordinary unification needs a witness. Fields are inferred or
+left as proof obligations. This finite enumeration does not synthesize arbitrary
+nested terms or simultaneously guess multiple implicit arguments.
+
 ## Search or commitment
 
 The default `(mode := .search)` uses depth-first continuation search inside

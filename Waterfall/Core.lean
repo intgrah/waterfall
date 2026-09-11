@@ -157,6 +157,30 @@ private def closingMoves (rules : Array (TSyntax `term)) (strength : Nat) :
     tacticMove "simp" (← `(tactic| ($simp:tactic; done))),
     grind false, grind true].map (fun m => { m with cost := 0 }) ++ constructors
 
+-- Propose one constructor layer for an implicit data argument before unification.
+-- Enumeration retains only binder positions and declaration names, never fresh
+-- metavariables. Unification fills fields where possible; every unresolved field
+-- remains an obligation. Nested witnesses blocked by reduction need more search
+-- machinery than this fallback, which chooses only the outer constructor.
+private def witnessMoves (g : MVarId) (ctor : Name) : TacticM (Array Move) := do
+  let choices ← withoutModifyingState do
+    forallTelescopeReducing (← inferType (← mkConstWithFreshMVarLevels ctor)) fun xs _ => do
+      let mut choices := #[]
+      for i in [:xs.size] do
+        let d ← getFVarLocalDecl xs[i]!
+        if d.binderInfo.isExplicit || d.binderInfo.isInstImplicit || (← isProp d.type) then continue
+        let .const n _ := (← whnf d.type).getAppFn | continue
+        let some (.inductInfo info) := (← getEnv).find? n | continue
+        for c in info.ctors do choices := choices.push (i, c)
+      return choices
+  return choices.map fun (i, witness) => {
+    cost := 2, label := s!"constructor {ctor} witness {i} {witness}"
+    run := g.withContext do
+      let fn ← mkConstWithFreshMVarLevels ctor
+      let (xs, _, _) ← forallMetaTelescopeReducing (← inferType fn)
+      discard <| xs[i]!.mvarId!.apply (← mkConstWithFreshMVarLevels witness)
+      setGoals (← g.apply (mkAppN fn xs)) }
+
 private def customElim? (id : FVarId) (induction : Bool) : TacticM (Option Name) := do
   if tactic.customEliminators.get (← getOptions) then
     getCustomEliminator? #[mkFVar id] induction
@@ -244,6 +268,7 @@ private def operationBatch (g : MVarId) (rules : Array (TSyntax `term))
           for ctor in info.ctors do
             out := out.push { cost := 1, label := s!"constructor {ctor}", run := do
               setGoals (← g.apply (← mkConstWithFreshMVarLevels ctor)) }
+            if maxCost >= 2 then out := out ++ (← witnessMoves g ctor)
     if group == .library then
       -- Library search remains available at cost two; direct operations cost one.
       if maxCost >= 2 then
