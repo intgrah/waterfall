@@ -1,5 +1,9 @@
 # Independent adversarial review of Waterfall
 
+**Resolution:** all three findings below have been fixed, with regression tests.
+See [FIXES.md](FIXES.md). This review and its original evidence are retained as
+the historical diagnosis of the pre-fix implementation.
+
 Reviewed 2026-09-11. Target: `/home/samth/work/Waterfall`, baseline `75e0ecf`
 plus the readability refactor in `Core.lean` and `Protocol.lean`, finalized as
 `b859160c2580d4f1109aeb8b5d966851b24b8d7c`.

@@ -422,8 +422,8 @@ private def inductOrAnalyzeData (g : MVarId) : TacticM (Array Move) := do
 /-- Generating one group never requires enumerating a later group. Values captured
 by its moves belong to this input snapshot, exactly as for eager enumeration. -/
 def movesFor (g : MVarId) (rules : Array (TSyntax `term)) (strength remaining : Nat)
-    (group : Group) : TacticM (Array Move) :=
-  match group with
+    (group : Group) : TacticM (Array Move) := do
+  let moves ← match group with
   | .close => closeGoal rules strength
   | .basic => g.withContext <| prepareGoal g rules strength
   | .hypotheses => g.withContext <| analyzeHypotheses g
@@ -432,6 +432,7 @@ def movesFor (g : MVarId) (rules : Array (TSyntax `term)) (strength remaining : 
   | .forward => g.withContext <| instantiateHypotheses g strength
   | .functions => g.withContext <| followRecursion g rules
   | .induction => g.withContext <| inductOrAnalyzeData g
+  return moves.map fun move => { move with checkLocalChange := true }
 
 def prepareRules (g : MVarId) (rules : Array (TSyntax `term)) : TacticM (Array (TSyntax `term)) := do
   return rules ++ terms (← goalDefinitions g)
@@ -561,9 +562,11 @@ def expand (cfg : Config) (stats : IO.Ref Stats) (hooks : Hooks)
         if ← hooks.bool step (attempt cfg stats m hooks.charge) then
           let children ← getUnsolvedGoals
           if closing && !children.isEmpty then continue
-          if !closing then
-            if let [child] := children then
-              if (← conjectureShape child) == before then continue
+          -- Local shape is only an opt-in pruning heuristic. A provider can
+          -- advance another obligation or hidden witness without changing this
+          -- goal; depth/cost accounting remains authoritative for those moves.
+          if let [child] := children then
+            if m.checkLocalChange && (← conjectureShape child) == before then continue
           let next := children.map fun g => { job with
             goal := g, remaining := job.remaining - cost, ancestors := candidate :: job.ancestors }
           let selected : Selection := {

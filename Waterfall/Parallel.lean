@@ -17,13 +17,19 @@ namespace Waterfall.Parallel
 private structure Result where
   value : Except Exception Stats
   saved : Tactic.SavedState
-  heartbeats : Nat
+
+/-- One worker owns its cost cell. The parent reads it only after joining, even
+when the task exits with an interrupt instead of returning a proof result. -/
+private structure Worker where
+  task : Task (Except Exception Result)
+  heartbeats : IO.Ref Nat
 
 /-- Fork all elaboration state, splitting fresh names through Lean's own async
 boundary. Incremental tactic snapshots contain promises and must not be shared.
 Only the returned whole checkpoint can later be adopted by the parent. -/
 private def fork (cancel : IO.CancelToken) (cap : Nat) (body : TacticM Stats) :
-    TacticM (Task (Except Exception Result)) := do
+    TacticM Worker := do
+  let heartbeats ← IO.mkRef 0
   let tc ← read
   let ts ← get
   let ec := { (← readThe Term.Context) with tacSnap? := none }
@@ -32,17 +38,20 @@ private def fork (cancel : IO.CancelToken) (cap : Nat) (body : TacticM Stats) :
   let ms ← getThe Meta.State
   let worker : TacticM Result := do
     let start ← IO.getNumHeartbeats
-    let value ← tryCatchRuntimeEx (Except.ok <$> withTheReader Core.Context
-      (fun c => { c with initHeartbeats := start, maxHeartbeats := cap }) body)
-      (pure ∘ Except.error)
-    -- Capture even failed/cancelled work so its resources are not refunded.
-    let saved ← Tactic.saveState
-    return ⟨value, saved, (← IO.getNumHeartbeats) - start⟩
+    try
+      let value ← tryCatchRuntimeEx (Except.ok <$> withTheReader Core.Context
+        (fun c => { c with initHeartbeats := start, maxHeartbeats := cap }) body)
+        (pure ∘ Except.error)
+      return ⟨value, ← Tactic.saveState⟩
+    finally
+      -- tryCatchRuntimeEx deliberately rethrows interrupts. Measure independently
+      -- of Result so cancellation cannot erase work that has already been spent.
+      heartbeats.set ((← IO.getNumHeartbeats) - start)
   let core : CoreM Result := (((worker tc).run' ts ec).run' es mc).run' ms
   let action ← Core.wrapAsync (fun (_ : Unit) => core) (some cancel)
   -- A coordinator can itself run in Lean's task pool. Dedicated proof workers
   -- cannot be starved by coordinators occupying all of that pool's threads.
-  EIO.asTask (action ()) Task.Priority.dedicated
+  return ⟨← EIO.asTask (action ()) Task.Priority.dedicated, heartbeats⟩
 
 /-- Execute with at most `cpus` workers. `withHooks` supplies callbacks separately inside each
 worker: allocate mutable recorders there, never share ordinary IO.Ref callbacks.
@@ -73,52 +82,57 @@ def run (cpus : Nat) (cfg : Config) (rules : Array (TSyntax `term) := #[])
   let winner ← IO.mkRef (none : Option Result)
   -- Cleanup must also run if spawning or the waiting parent is interrupted.
   let result ← tryCatchRuntimeEx (do
-    for lane in [:cpus] do
-      let task ← fork cancel cap <| withHooks fun inner => do
-        let hooks : Hooks := { inner with
-          trials := fun round => if round % cpus == lane then inner.trials round else #[]
-          charge := do
-            Core.checkInterrupted
-            let admitted ← ledger.atomically do
-              let s ← get
-              if s.attempts >= cfg.effort then return false
-              set { s with attempts := s.attempts + 1 }
-              return true
-            unless admitted do throwError "waterfall shared effort exhausted"
-            inner.charge
-          around := fun span outcome body => do
-            Core.checkSystem "waterfall parallel"
-            if span.phase == .node then
-              ledger.atomically <| modify fun s => { s with nodes := s.nodes + 1 }
-            inner.around span outcome body }
-        let stats ← Waterfall.run { cfg with report := false } rules hooks
-        Core.checkSystem "waterfall worker result"
-        return stats
-      tasks.modify (·.push task)
-    -- Wait on a dedicated monitor task. Blocking via IO.wait tells Lean's
-    -- task pool that this elaborator is idle, so workers can also await queued
-    -- elaboration/kernel tasks. Polling here would occupy that pool and deadlock.
-    let pending ← tasks.get
-    let monitor ← BaseIO.asTask (prio := Task.Priority.dedicated) do
-      repeat
-        if let some token := parent.cancelTk? then
-          if ← token.isSet then return none
-        let mut finished := 0
-        for task in pending do
-          if ← IO.hasFinished task then
-            finished := finished + 1
-            if let .ok r := task.get then
-              if r.value.isOk then return some r
-        if finished == pending.size then return none
-        IO.sleep 1
-      return none
-    winner.set (← IO.wait monitor)
-    pure (Except.ok ())) (pure ∘ Except.error)
-  cancel.set
-  -- Joining does not execute new proof work on the parent. Always account even
-  -- when its own heartbeat allowance or cancellation token has been exhausted.
-  for task in ← tasks.get do
-    if let .ok r := (← IO.wait task) then IO.addHeartbeats r.heartbeats
+    try
+      for lane in [:cpus] do
+        let task ← fork cancel cap <| withHooks fun inner => do
+          let hooks : Hooks := { inner with
+            trials := fun round => if round % cpus == lane then inner.trials round else #[]
+            charge := do
+              Core.checkInterrupted
+              let admitted ← ledger.atomically do
+                let s ← get
+                if s.attempts >= cfg.effort then return false
+                set { s with attempts := s.attempts + 1 }
+                return true
+              unless admitted do throwError "waterfall shared effort exhausted"
+              inner.charge
+            around := fun span outcome body => do
+              Core.checkSystem "waterfall parallel"
+              if span.phase == .node then
+                ledger.atomically <| modify fun s => { s with nodes := s.nodes + 1 }
+              inner.around span outcome body }
+          let stats ← Waterfall.run { cfg with report := false } rules hooks
+          Core.checkSystem "waterfall worker result"
+          return stats
+        tasks.modify (·.push task)
+      -- Wait on a dedicated monitor task. Blocking via IO.wait tells Lean's
+      -- task pool that this elaborator is idle, so workers can also await queued
+      -- elaboration/kernel tasks. Polling here would occupy that pool and deadlock.
+      let pending := (← tasks.get).map (·.task)
+      let monitor ← BaseIO.asTask (prio := Task.Priority.dedicated) do
+        repeat
+          if let some token := parent.cancelTk? then
+            if ← token.isSet then return none
+          let mut finished := 0
+          for task in pending do
+            if ← IO.hasFinished task then
+              finished := finished + 1
+              if let .ok r := task.get then
+                if r.value.isOk then return some r
+          if finished == pending.size then return none
+          IO.sleep 1
+        return none
+      winner.set (← IO.wait monitor)
+      pure (Except.ok ())
+    finally
+      cancel.set
+      -- Join and charge every registered worker, regardless of its result.
+      -- No cancellation/resource checks interrupt this cleanup. Restore the
+      -- parent before either rethrowing an exception or adopting the winner.
+      for worker in ← tasks.get do
+        discard <| IO.wait worker.task
+        IO.addHeartbeats (← worker.heartbeats.get)
+      saved.restore true) (pure ∘ Except.error)
   let totals ← ledger.atomically get
   let spent := (← IO.getNumHeartbeats) - start
   tryCatchRuntimeEx (do

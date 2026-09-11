@@ -31,8 +31,11 @@ that preparation, induction, and reintroduction of dependent assumptions.
 the requested stages. Each candidate receives its stable identifier before
 applicability filtering or policy reordering. `attempt` charges the global work
 allowance and runs one inference inside a bounded heartbeat slice. A closer is
-accepted only if it leaves no children. Other steps must make progress: a
-single unchanged conjecture is rejected by `conjectureShape`.
+accepted only if it leaves no children. Built-in steps request local stutter
+pruning: a single unchanged conjecture is rejected by `conjectureShape`.
+Extensions default to allowing local stutter because a step may advance a
+shared witness or another obligation. `Move.checkLocalChange` makes this
+heuristic explicit; every structural transition still spends positive depth.
 
 Successful local inference is still only a proposal. The successor checkpoint
 contains its new child obligations **and every pending sibling**, under the same
@@ -71,10 +74,10 @@ counters and other external callback effects cannot be rolled back.
 
 ## Size and refactoring limits
 
-The engine is 499 noncomment lines, compared with 496 before this refactor.
-The engine plus its complete protocol is 619 (previously 595); the default
-import is 835 (previously 811). The increase is named stage boundaries and
-readable declarations. Counts include all local helpers and are reproduced by
-`python3 scripts/size.py`; moving the shared data declarations is not counted
-as an overall reduction. No new search policy, inference family, or dependency
-was introduced.
+The engine remains 499 noncomment lines after the three review fixes. Including
+the complete protocol gives 620; the default import is 845. Before these fixes
+the corresponding totals were 499, 619, and 835. The increase is the explicit
+progress contract and interrupt-safe worker accounting, outside the proof engine.
+Counts include all local helpers and are reproduced by `python3 scripts/size.py`;
+moving shared data declarations is not counted as an overall reduction. No new
+search policy, inference family, or dependency was introduced.

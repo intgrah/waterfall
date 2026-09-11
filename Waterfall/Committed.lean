@@ -60,15 +60,18 @@ def choose (space : Space State) : Choices (Node State) := Choices.first fun vis
     return ← space.restart space.root { reverted := true, direct := true } visit
   -- All ordinary proposals missed in this scan. Consider induction in reverse
   -- agenda order, without retaining misses across subsequent proof steps.
+  -- An empty expansion has made no commitment: keep scanning earlier siblings.
+  -- Choices.first stops this whole producer only after a transition is yielded,
+  -- even when that transition's continuation fails.
   for focus in (List.range node.jobs.length).reverse do
     let job := node.jobs[focus]!
     if ← job.goal.isAssigned then continue
     let candidates := space.expand focus #[#[.hypotheses, .functions, .induction]] fun c =>
       c.move.induction != .none || c.move.role == `inversion
-    return ← candidates fun next => do
+    if ← candidates (fun next => do
       let induced := next.plan.head?.any (fun (step, _) => step.induction != .none)
       visit { next with state := { state with
-        induced := state.induced || induced, direct := false } }
+        induced := state.induced || induced, direct := false } }) then return true
   return false
 
 /-- The same inference adapters and attempt slices as the default. The linear

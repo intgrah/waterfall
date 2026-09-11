@@ -70,6 +70,21 @@ control middleware can reduce allowances or abort spans. The engine owns proof
 acceptance and rollback. Ordering and cost callbacks see temporary state;
 external IO side effects remain the callback author's responsibility.
 
+## Progress and extension operations
+
+`Move.checkLocalChange` defaults to `false`. A structural extension may assign a
+shared witness, change another obligation, or update local values while leaving
+the selected target and assumption types unchanged. The engine accepts such a
+transition and charges its positive structural cost. Final root validation is
+unchanged; accepting a transition is not accepting a complete proof.
+
+Built-in generators set `checkLocalChange := true` to preserve their existing
+local stutter pruning. An extension can opt into this heuristic explicitly, or
+implement its own progress checks in `Move.run`. The heuristic compares the
+single child's target and assumption types with the input; it is deliberately
+not a general test of proof-state equality. The engine's positive cost floor and
+global attempt allowance still bound steps that leave a goal unchanged.
+
 ## Observation and replay
 
 Import `Waterfall.Observe` explicitly. `capture` returns a `Report` with success,
@@ -90,12 +105,6 @@ sibling dependencies and charged checkpoint recovery; see `Tests/Observe.lean`
 for timing and replay examples.
 
 ## Parallel execution
-
-Known defect: a cooperatively interrupted worker currently omits its final
-heartbeat debit. Attempt accounting is still shared, but aggregate heartbeat
-accounting needs the repair recorded in the
-[adversarial review](reviews/2026-09-11/README.md). The resource contract below
-describes the intended behavior; the cancellation path does not yet meet it.
 
 `Parallel.run cpus cfg rules withHooks` runs the same engine in isolated workers.
 `withHooks` receives a continuation accepting `Hooks`; call it once. Allocate
@@ -122,7 +131,10 @@ inside a single trial. Committed mode retains its local commitment semantics.
 A mutex reserves attempts across workers, including restarts. Each worker has
 its own engine counters and elaboration state. The enclosing remaining heartbeat
 allowance is divided equally; unused shares are currently not redistributed.
-Actual child heartbeats, including failed and cancelled work, are charged to the
+Each worker records its spent heartbeats in a `finally` block, independently
+of whether it returns a proof result or an interrupt. The parent always cancels,
+joins, and reads these costs before adopting the winner. Actual child
+heartbeats, including failed and cancelled work, are charged to the
 parent's thread counter before acceptance. Aggregate overruns reject the result.
 Workers use dedicated threads so a caller running inside Lean's elaboration
 pool cannot starve them. Operating-system CPU affinity can impose lower CPU

@@ -78,6 +78,12 @@ structure Move where
   cost : Nat := 1
   label : String
   run : TacticM Unit
+  /-- Optional local stutter pruning: reject a single child whose target and
+  assumption types equal the input. This is a heuristic for built-in operations,
+  not a test of complete proof-state equality. Extensions default to accepting
+  local stutter, since they may advance shared witnesses or other obligations.
+  Positive structural costs still bound every accepted extension step. -/
+  checkLocalChange : Bool := false
   /-- False when replay needs state or proof inputs absent from the ordinary plan. -/
   replayable : Bool := true
   induction : InductionKind := .none
