@@ -268,7 +268,8 @@ private def operationBatch (g : MVarId) (rules : Array (TSyntax `term))
           for ctor in info.ctors do
             out := out.push { cost := 1, label := s!"constructor {ctor}", run := do
               setGoals (← g.apply (← mkConstWithFreshMVarLevels ctor)) }
-            if maxCost >= 2 then out := out ++ (← witnessMoves g ctor)
+          if maxCost >= 2 then
+            for ctor in info.ctors do out := out ++ (← witnessMoves g ctor)
     if group == .library then
       -- Library search remains available at cost two; direct operations cost one.
       if maxCost >= 2 then

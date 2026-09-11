@@ -42,9 +42,7 @@ def choose (space : Space State) : Choices (Node State) := Choices.first fun vis
     if ← job.goal.isAssigned then continue
     let admit := fun (candidate : Candidate) =>
       candidate.move.induction == .none && candidate.move.role != `inversion &&
-      (!state.direct || candidate.action.group == .close || candidate.move.role == `prepare) &&
-      (candidate.action.group != .forward ||
-        !job.ancestors.any (fun previous => previous.action.group == .forward))
+      (!state.direct || candidate.action.group == .close || candidate.move.role == `prepare)
     let ordinary := space.expand focus
       #[#[.close], #[.basic], #[.hypotheses], #[.functions], #[.induction],
         #[.rules], #[.forward], #[.library]] admit

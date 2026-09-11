@@ -99,9 +99,9 @@ python3 scripts/size.py
 python3 scripts/build_site.py
 ```
 
-The inference engine has 492 noncomment lines. Including its protocol gives
-590; the complete default import, including both configured modes and the tactic
-interface, is 702. Optional observation adds 316 lines. These counts include
+The inference engine has 493 noncomment lines. Including its protocol gives
+591; the complete default import, including both configured modes and the tactic
+interface, is 701. Optional observation adds 316 lines. These counts include
 local helpers; the package does not claim a sub-500-line complete import.
 
 The tests include backtracking, shared witnesses, exhaustion, commitment,

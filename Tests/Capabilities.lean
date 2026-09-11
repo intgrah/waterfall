@@ -113,4 +113,25 @@ example : True := by
   fail_if_success have : Wrapped (fun _ => False) 0 := by waterfall (effort := 50)
   trivial
 
+-- Isolate the committed policy from built-in solvers: two distinct forward
+-- steps must be allowed on one path, even though the first already progressed.
+example : True := by
+  run_tac
+    let hooks := { Committed.hooks with
+      trials := fun _ => #[(3, 1)]
+      cost := fun _ _ c => pure (if c.move.role == `fixture then 1 else 1000)
+      extraMoves := fun g _ _ _ group => g.withContext do
+        if group != .forward then return #[]
+        let second := (← getLCtx).any (·.userName == `first_forward)
+        return #[{ cost := 1, role := `fixture, label := "forward fixture", run := do
+          if second then
+            g.assign (mkConst ``True.intro)
+            setGoals []
+          else
+            let (_, child) ← g.note `first_forward (mkConst ``True.intro)
+            setGoals [child] }] }
+    let s ← Waterfall.run { effort := 2 } #[] hooks
+    unless s.attempts == 2 && s.choices.size == 2 do
+      throwError "committed policy suppressed the second forward transition"
+
 end CapabilityTest

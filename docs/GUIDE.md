@@ -31,9 +31,9 @@ Lean's ambient resource limits and any custom callbacks.
 
 `(mode := .committed)` uses the same engine with an ACL2-inspired policy. It
 commits to the first locally progressing transition, scans ordinary work before
-induction, ranks induction candidates, limits repeated forward steps by ancestry,
-and permits one return to the original conjecture per trial. It retries ordinary
-work after sibling progress. This deliberately prunes alternatives and uses a
+induction, ranks induction candidates, and permits one return to the original conjecture per trial. It retries ordinary
+work after sibling progress. Distinct forward instances may be chained, subject
+to the same depth and attempt budgets as other operations. This deliberately prunes alternatives and uses a
 different trial schedule and costs; it is not simply a speed switch.
 
 ## Resources and diagnostics
