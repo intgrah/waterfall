@@ -13,3 +13,6 @@ theorem committed (xs : List Nat) : append xs [] = xs := by
 #print axioms search
 #print axioms committed
 end Consumer
+
+example (P : Prop) (h : P) : P := by
+  waterfall (cpus := 2)

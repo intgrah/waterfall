@@ -9,15 +9,16 @@ is a compiled tutorial. The library exports the following small interfaces.
 | `Waterfall.Core` | `Config`, `Stats`, `run`, engine transitions and root validation |
 | `Waterfall.Protocol` | `Move`, `Candidate`, `Job`, `Node`, `Space`, `SearchPolicy`, `Hooks` |
 | `Waterfall.Choices` | Generic lazy selection, filtering, collection and commitment |
+| `Waterfall.Parallel` | Isolated concurrent trials, shared work accounting and cancellation |
 | `Waterfall.Committed` | ACL2-inspired callbacks over the shared engine |
 | `Waterfall.Observe` | Optional timing, control middleware, action recording and replay |
 | `Waterfall.Canonical` | Optional canonical goal encoding for replay checks |
 
 ## Tactic interface
 
-`Options` extends engine `Config` with `mode : Mode := .search`. Standard Lean configuration syntax accepts
+`Options` extends engine `Config` with `mode : Mode := .search` and `cpus : Nat := 1`. Standard Lean configuration syntax accepts
 individual fields or `(config := { ... })`. The adapter passes
-`mode.hooks` and `Options.toConfig` to `run`. Custom callback functions are
+`mode.hooks` and `Options.toConfig` to `Parallel.run`; one CPU calls `run` directly. Custom callback functions are
 configured through `run`, preserving the arbitrary typed policy state interface.
 It adds no proof-search algorithm.
 
@@ -47,6 +48,8 @@ expansion and restart are refused. Ambient limits still constrain traversal.
 
 ## Hooks
 
+- `charge`: reserve one operation before dispatch, including checkpoint restarts.
+  Exceptions stop the run; reservations and external effects are not rolled back.
 - `policy`: choose transitions, agenda order and traversal.
 - `trials`: finite batches of depth/positive-strength pairs by round.
 - `batches`: lazy structural groups; each original group must occur exactly once.
@@ -80,3 +83,50 @@ plan. Final root validation and Lean's kernel remain authoritative.
 See `Tests/SearchPolicy.lean` for a FIFO frontier, scored successors, commitment,
 sibling dependencies and charged checkpoint recovery; see `Tests/Observe.lean`
 for timing and replay examples.
+
+## Parallel execution
+
+`Parallel.run cpus cfg rules withHooks` runs the same engine in isolated workers.
+`withHooks` receives a continuation accepting `Hooks`; call it once. Allocate
+mutable observers inside this function so each worker owns separate IO references:
+
+```lean
+import Waterfall
+import Waterfall.Observe
+
+open Lean Elab Tactic Waterfall
+example (P : Prop) (h : P) : P := by
+  run_tac
+    discard <| Parallel.run 2 {} #[] fun use => do
+      let recorder ← Observe.Recorder.create
+      use (recorder.hooks {} Mode.search.hooks)
+```
+
+Round `i` of `Hooks.trials` belongs to worker `i % cpus`. No trial is duplicated,
+and all callbacks otherwise describe one policy. The first observed complete
+proof wins; ordering among simultaneous completions is unspecified. This
+parallelizes iterative deepening, not sibling proof obligations or branches
+inside a single trial. Committed mode retains its local commitment semantics.
+
+A mutex reserves attempts across workers, including restarts. Each worker has
+its own engine counters and elaboration state. The enclosing remaining heartbeat
+allowance is divided equally; unused shares are currently not redistributed.
+Actual child heartbeats, including failed and cancelled work, are charged to the
+parent's thread counter before acceptance. Aggregate overruns reject the result.
+Workers use dedicated threads so a caller running inside Lean's elaboration
+pool cannot starve them. Operating-system CPU affinity can impose lower CPU
+concurrency than `cpus`; zero is rejected. No process or CPU affinity is created
+by the tactic itself. The limit is per invocation, not a global limit on
+concurrent theorem elaboration.
+
+Parent cancellation and a completed proof signal cancellation to workers, which
+are always joined. Cancellation remains cooperative inside Lean operations.
+Increasing both work and heartbeat limits keeps every trial eventually available
+when the underlying schedule is fair. A fixed total budget can produce different
+coverage from sequential execution: speculation competes for the same resources.
+Custom callbacks must not share mutable IO references unless synchronized; use
+`withHooks` for per-worker recorders and other local state. Observer callbacks in
+an unsuccessful worker may already have run and are not undone by cancellation.
+`Stats.attempts` and `nodes` are aggregate counts; depth, strength and choices
+identify the winning worker. `Observe.capture` remains a sequential convenience
+API; use the initializer above for parallel observation.

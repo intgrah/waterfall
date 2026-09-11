@@ -45,6 +45,16 @@ example (P : Prop) (h : P) : P := by
   waterfall (config := {mode := .committed, effort := 1000})
 
 /-!
+## Parallel execution
+
+`cpus` limits concurrent trials of the selected policy. Workers use dedicated threads, including
+when called from an asynchronous Lean elaborator. Attempts and heartbeats remain aggregate
+budgets; the first completed proof wins. One CPU retains sequential execution.
+-/
+example (P : Prop) (h : P) : P := by
+  waterfall (cpus := 2)
+
+/-!
 ## Extending search
 
 `Mode.hooks` supplies ordinary callback functions for a mode. Adapt the

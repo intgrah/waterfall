@@ -68,6 +68,7 @@ hypotheses are used automatically.
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `mode` | `.search` | Backtracking search or `.committed` |
+| `cpus` | `1` | Maximum concurrent workers; total budgets remain shared |
 | `effort` | `1000` | Global attempted-operation allowance |
 | `attemptHeartbeats` | `20000000` | Base raw heartbeat slice per operation; strength scales it |
 | `lazy` | `true` | Enumerate batches only when reached |
@@ -76,6 +77,13 @@ hypotheses are used automatically.
 
 See the [compiled Lean tutorial](Docs/Guide.lean), [user guide](docs/GUIDE.md),
 and [API reference](docs/API.md). The website includes an option configurator.
+
+Use `waterfall (cpus := 4)` to explore different depth/strength trials of the
+same policy concurrently on at most four dedicated worker threads. The first completed proof wins; timings,
+retained plans and finite-budget coverage can vary. Workers share the attempt
+allowance and divide the remaining heartbeat allowance. Operating-system CPU affinity can further limit concurrency. Cancellation is
+cooperative, and all workers are joined before returning. The default of one
+CPU uses the existing sequential path. See [parallel execution](docs/API.md#parallel-execution).
 
 ## Extend it
 
@@ -99,9 +107,9 @@ python3 scripts/size.py
 python3 scripts/build_site.py
 ```
 
-The inference engine has 493 noncomment lines. Including its protocol gives
-591; the complete default import, including both configured modes and the tactic
-interface, is 701. Optional observation adds 316 lines. These counts include
+The inference engine has 496 noncomment lines. Including its protocol gives
+595; the complete default import, including both configured modes and the tactic
+interface and parallel scheduler, is 811. Optional observation adds 316 lines. These counts include
 local helpers; the package does not claim a sub-500-line complete import.
 
 The tests include backtracking, shared witnesses, exhaustion, commitment,

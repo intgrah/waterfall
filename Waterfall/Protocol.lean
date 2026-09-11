@@ -136,6 +136,10 @@ def diagonalTrials (rootPrefix round : Nat) : Array (Nat × Nat) :=
     if tier == round && round < rootPrefix then none else some (round - tier, tier + 1)
 
 structure Hooks where
+  /-- Reserve one attempted operation, including a checkpoint restart. Called
+  before dispatch and outside rollback. Raising an exception stops the run.
+  Schedulers can use this to share a work budget across isolated searches. -/
+  charge : TacticM Unit := pure ()
   policy : SearchPolicy := .default
   /-- Finite batches of trials. For eventual reachability, visit every finite
   depth and positive strength; effort truncates this one sequence globally. -/

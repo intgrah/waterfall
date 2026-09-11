@@ -1,4 +1,4 @@
-import Waterfall.Core
+import Waterfall.Parallel
 import Waterfall.Committed
 
 /-! # The `waterfall` tactic
@@ -29,6 +29,9 @@ and enumeration. For custom search, ordering, costs and observation, adapt
 structure Options extends Config where
   /-- Backtracking search by default; commitment is an explicit choice. -/
   mode : Mode := .search
+  /-- Maximum concurrent workers. One uses the original sequential traversal.
+  Effort and ambient heartbeats remain aggregate limits across all workers. -/
+  cpus : Nat := 1
 
 declare_config_elab elabOptions Options
 
@@ -49,7 +52,7 @@ operation labels. This is a diagnostic summary, not a standalone proof script. -
 syntax (name := waterfallReportTac) "waterfall?" optConfig (" [" term,* "]")? : tactic
 
 private def execute (options : Options) (rules : Array (TSyntax `term)) : TacticM Unit := do
-  discard <| run options.toConfig rules options.mode.hooks
+  discard <| Parallel.run options.cpus options.toConfig rules (fun use => use options.mode.hooks)
 
 elab_rules : tactic
   | `(tactic| waterfall $cfg:optConfig $[[$rules,*]]?) => do

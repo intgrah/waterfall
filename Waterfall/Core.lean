@@ -440,9 +440,11 @@ private def signature (g : MVarId) : MetaM (List Expr) := g.withContext do
 /-- An attempt has a strength-scaled heartbeat slice, capped by the ambient remaining
 allowance. It cannot create a fresh budget after the parent is exhausted.
 -/
-def attempt (cfg : Config) (stats : IO.Ref Stats) (m : Move) : TacticM Bool := do
+def attempt (cfg : Config) (stats : IO.Ref Stats) (m : Move)
+    (charge : TacticM Unit := pure ()) : TacticM Bool := do
   let s ← stats.get
   if s.attempts >= cfg.effort then return false
+  charge
   -- Count the attempt before running it, including failures and exhausted slices.
   -- Enumeration itself is charged to the ambient heartbeat budget, not this count.
   -- One Move is one attempt; its internal alternatives are not counted separately.
@@ -541,7 +543,7 @@ def expand (cfg : Config) (stats : IO.Ref Stats) (hooks : Hooks)
         let step : Span := { span with
           phase := .action, group := some action.group, action := some action,
           induction := m.induction, label := m.label }
-        if ← hooks.bool step (attempt cfg stats m) then
+        if ← hooks.bool step (attempt cfg stats m hooks.charge) then
           let children ← getUnsolvedGoals
           if closing && !children.isEmpty then continue
           if !closing then
@@ -585,6 +587,7 @@ private partial def search (cfg : Config) (stats : IO.Ref Stats) (hooks : Hooks)
       expand := expand cfg stats hooks rules node,
       restart := fun checkpoint state visit => do
         if (← stats.get).attempts >= cfg.effort then return false
+        hooks.charge
         stats.modify fun s => { s with attempts := s.attempts + 1 }
         checkpoint.saved.restore true
         visit { checkpoint with state } }

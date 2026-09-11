@@ -76,3 +76,15 @@ still make search unfair or fail to terminate; they are trusted metaprograms.
 
 The [compiled tutorial](../Docs/Guide.lean) demonstrates these options. The
 [API reference](API.md) explains checkpoint ownership, middleware and replay.
+
+## Multiple CPUs
+
+`waterfall (cpus := 4)` runs different trials of the selected policy concurrently.
+The tactic uses dedicated worker threads; CPU affinity may further limit concurrency. Attempts and
+heartbeats remain total budgets; more CPUs do not multiply either allowance.
+Each worker keeps a complete proof state, including dependent siblings. The first
+complete proof wins, then all other workers are cancelled and joined.
+
+At a fixed budget this changes which trials receive work, so it can gain or lose
+proofs and does not guarantee a speedup. A difficult single trial is still
+sequential. One CPU is the default and preserves sequential execution.

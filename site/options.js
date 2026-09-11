@@ -3,8 +3,10 @@ const form = document.querySelector("#options");
 function updateOptions() {
   const mode = new FormData(form).get("mode");
   const effort = document.querySelector("#effort").value;
+  const cpus = document.querySelector("#cpus").value;
   const opts = [];
   if (mode !== "search") opts.push("(mode := .committed)");
+  if (cpus !== "1") opts.push(`(cpus := ${cpus})`);
   if (effort !== "1000") opts.push(`(effort := ${effort})`);
   if (!document.querySelector("#lazy").checked) opts.push("(lazy := false)");
   if (document.querySelector("#defer").checked) opts.push("(deferChecks := true)");

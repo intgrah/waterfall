@@ -57,7 +57,7 @@ def closure(start):
     pending, counted = [start], {}
     while pending:
         module = pending.pop()
-        if module in counted or module == "Lean" or module.startswith("Lean."):
+        if module in counted or module in {"Lean", "Std"} or module.startswith(("Lean.", "Std.")):
             continue
         path = root / (module.replace(".", "/") + ".lean")
         source = path.read_text()

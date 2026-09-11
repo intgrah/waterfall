@@ -219,7 +219,7 @@ def replay (plan : Plan) (rules : Array (TSyntax `term)) (key : String)
       stats.modify fun s => { s with strength := step.strength }
       unless ← hooks.bool { span with
           phase := .action, action := some step.action, induction := move.induction, label := move.label }
-          (attempt { effort := plan.steps.size, attemptHeartbeats := plan.attemptHeartbeats } stats move) do
+          (attempt { effort := plan.steps.size, attemptHeartbeats := plan.attemptHeartbeats } stats move hooks.charge) do
         throwError "waterfall plan action failed"
       let children ← getUnsolvedGoals
       unless children.length == step.children do throwError "waterfall plan child-count mismatch"
