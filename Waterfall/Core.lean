@@ -15,7 +15,7 @@ open Lean Meta Elab Tactic
 
 namespace Waterfall
 
-initialize registerTraceClass `waterfall
+initialize registerTraceClass `Waterfall.search
 
 -- Two independent limits matter: effort bounds the number of attempted moves;
 -- Lean's ambient heartbeat budget bounds all work, including move enumeration.
@@ -459,10 +459,10 @@ def attempt (cfg : Config) (stats : IO.Ref Stats) (m : Move) : TacticM Bool := d
     -- recovery is disabled so a partial or admitted result cannot pass as success.
     withTheReader Core.Context (fun c => { c with initHeartbeats := now, maxHeartbeats := cap }) do
       Term.withoutErrToSorry <| withoutRecover m.run
-    trace[waterfall] "{m.label}: goals={(← getUnsolvedGoals).length}"
+    trace[Waterfall.search] "{m.label}: goals={(← getUnsolvedGoals).length}"
     -- The final check also catches operations that return after overspending.
     return decide ((← IO.getNumHeartbeats) - now <= cap)) fun ex => do
-    trace[waterfall] "{m.label}: {ex.toMessageData}"
+    trace[Waterfall.search] "{m.label}: {ex.toMessageData}"
     return false
 
 /-- Expand one selected goal. The visitor sees a successful local transition,

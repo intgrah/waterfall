@@ -17,4 +17,5 @@ name = "Waterfall"
 name = "WaterfallTests"
 roots = ["Tests.Core", "Tests.Canonical", "Tests.Observe", "Tests.ContextPolicy",
   "Tests.DefaultPolicy", "Tests.Exhaustion", "Tests.SearchPolicy", "Tests.Schedule",
-  "Tests.TrialPolicy", "Tests.Options", "Tests.Import", "Tests.Capabilities", "Docs.Guide"]
+  "Tests.TrialPolicy", "Tests.Options", "Tests.Import", "Tests.Capabilities",
+  "Tests.ForeignTrace", "Tests.Coexistence", "Docs.Guide"]
