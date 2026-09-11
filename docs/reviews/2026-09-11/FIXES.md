@@ -1,6 +1,6 @@
 # Fixes for the independent review
 
-All three findings are corrected in a behavior change separate from the
+All three findings are corrected in commit `5c64506`, separate from the
 readability refactor. The public tactic syntax, inference order, stable action
 identifiers, and default effort settings are unchanged.
 
@@ -58,7 +58,7 @@ probe charges 100,013,111 raw heartbeats against its 100,000,000 sentinel debt
 check, not a performance benchmark. All ten existing reference proof plans
 remain byte-identical.
 
-Exact sources and logs are recorded in `fix-validation.json`. No new full-corpus
+Exact sources and logs are recorded in [fix-validation.json](fix-validation.json). No new full-corpus
 performance or coverage claim is made for these targeted correctness repairs.
 
 The core is still 499 noncomment lines. Core plus the full protocol is 620;
