@@ -1,9 +1,11 @@
 {
-  "implementation_commit": "6ff4eb97746a772f9ec353923343bd22c1805630",
+  "implementation_commit": "8280f1611d112e36c355c4ebb14556db5e0471ea",
   "toolchain": "leanprover/lean4:v4.30.0",
-  "validated_utc": "2026-09-11T16:59:54.358201+00:00",
+  "validated_utc": "2026-09-11T20:22:25.362157+00:00",
   "checks": [
-    "lake build",
+    "lake build Waterfall Waterfall.Observe",
+    "lake env lean -j2 Tests/Parallel.lean",
+    "lake env lean -j1 Tests/ParallelAsync.lean (40-second external cap)",
     "lake test",
     "python3 scripts/check_docs.py",
     "python3 scripts/size.py",
@@ -13,26 +15,28 @@
   ],
   "execution": {
     "host": "dl",
-    "cpu": 0,
-    "runtime_threads": 1,
+    "default_cpu": 0,
+    "parallel_test_cpus": [
+      0,
+      1
+    ],
     "source_drift": [],
     "consumer_loaded_updated_core": true
   },
   "noncomment_lines": {
-    "Core.lean": 493,
-    "Core_with_protocol": 591,
-    "default_import": 701,
-    "optional_observation_import": 907
+    "Core.lean": 496,
+    "Core_with_protocol": 595,
+    "Parallel.lean": 105,
+    "default_import": 811,
+    "optional_observation_import": 911
   },
   "evidence": {
-    "package_receipt_sha256": "8e22dc165e5fa23a6c27b6911a84b98de50ca672cffef4e3173c3b29eb917c7e",
-    "package_log_sha256": "93a978c268e47f16aa6a0aef281affab9c8e19f908a858d5b8a58ddf8ce19b75",
-    "consumer_receipt_sha256": "f2f7dcbad0a8393462461e92dc022e0f1a77fea0b9ca69f917972b291e8bb32a",
-    "consumer_log_sha256": "40b2e95403d6faff579fd17f738974a7b0f671371069321015dfde5ea717e6a8",
-    "archive": "Full stage receipts are retained in the parent research repository under docs/reviews/2026-09-11/core-capabilities/validation."
+    "receipt_sha256": "10fd3df2e7e685b30d9d67dc420187b387ea5b73b05bbfb47cf75f63ed27c184",
+    "log_sha256": "16d3f74859873b2906521401047ad9fcbddc1a311ddf54b60c6f20690295a250",
+    "archive": "Parent research repository: docs/reviews/2026-09-11/lambda-fixes-parallel/validation and development-evidence.tar.gz"
   },
   "sources": {
-    "Docs/Guide.lean": "2c585f3eeff3b60a66c749d5663f04d11ba0a9783fd55ae0f9a4c334febffa8f",
+    "Docs/Guide.lean": "cc55cada61ed10fc510c045e77ad7c688b49d311bb6df23ea87dc7443c8a269b",
     "Tests/Canonical.lean": "f3ad650f9ff548565d827c0f66fa62c54248739453039c7249016a0e53136557",
     "Tests/Capabilities.lean": "5cb0db41e3f681e5880aa80dfeca26ea28455bac9e6230154ba4f2f066b2607f",
     "Tests/Coexistence.lean": "b26e516a55cd6de35113465843e9f0d12c654e47b0362aa5315df4e4694c95d9",
@@ -44,6 +48,8 @@
     "Tests/Import.lean": "9835fea44c2ab5ea7eeae44255134ef4a5eb7c4c372753169998f22e5c107da4",
     "Tests/Observe.lean": "f664cb2807ce9ca74cd216fbfa715c50d65ce811890e3b3042ea2ecf46dabeb8",
     "Tests/Options.lean": "c50315f27c328d7cbf9b0e6ef66b9035c64ca7708e85cd0388cdbeb073914c14",
+    "Tests/Parallel.lean": "f3c9f9a2282c7622dd5904049d984a140095d4ae95e722b13f5f7e80b576f890",
+    "Tests/ParallelAsync.lean": "f6c78238d905425185d38a03a0e9e7827ab5d388feba25acff9c7a72e0182c02",
     "Tests/Schedule.lean": "e5d9daed92332febcbc02e88056999128eb94482a59db33eeb4c03bdbbd1896f",
     "Tests/SearchPolicy.lean": "6570f55377704ab0eb189c69cde05ef052bef3894a7f63763227e3143c481d3f",
     "Tests/TrialPolicy.lean": "475d8ac889e167c67cf4060dc456c19f2eddebc3beebe5c5739b3bbf57423b70",
@@ -51,13 +57,15 @@
     "Waterfall/Canonical.lean": "f3478c170783bdcf510ef84fa86b7a8e42422b7536df4a4b05d0de99a39962af",
     "Waterfall/Choices.lean": "9f9c0876996bb992c298b6b4aaad5966755dff40da0837d74faece4aadec8421",
     "Waterfall/Committed.lean": "f8a4f7202c68ceba2357e15f792e1d85f6d3f3a16e47171e865fddf1124bbd40",
-    "Waterfall/Core.lean": "488b52796d6de8b001f7a69769ba4392222ce6a2cd98e0c66fd4099b5608f33f",
-    "Waterfall/Observe.lean": "005691d9ce8467d3343c23f484aa77d3d229ddb1e3648cda913ccc2f5d4eea48",
-    "Waterfall/Protocol.lean": "4eee90a3a1b00e5bfbabcc6719f0994f5c0bce98dabc1101912396c00583187d",
-    "Waterfall/Tactic.lean": "63f11d3dd4c8eded1f4de8e416de5da2bed0212df28214c39c9bfab9d81d8e35",
-    "consumer/Consumer.lean": "6be93ed2bee4faa7ec95e033be2f3af697d212bfc6092a100a1ac9eb7b81a91b",
-    "lakefile.toml": "a2738635ecd46dc4e1063793a717b21f6683489350ec19ca2ff143f0ef7e2584",
+    "Waterfall/Core.lean": "2cf37a7f1432a85c37d31d515140a7769337efc51875000b71746859964009fe",
+    "Waterfall/Observe.lean": "dcd5989da72eb17da78ac29cf453c5655297eaebda3bd35904c7bf9c5e13563d",
+    "Waterfall/Parallel.lean": "72413818b413a177e07cc807e4eadc241b9a120e325d317d4121c3f0cc0a0770",
+    "Waterfall/Protocol.lean": "4f4e81e48900daf678926378d1629796e38045a84acdb1f797fc8e1ca2bb7bda",
+    "Waterfall/Tactic.lean": "88b7410132c0ad51a60508c848d1887f3c37074ad73a4530e64490b17531fd8a",
+    "consumer/Consumer.lean": "f0e6eb190b73882b2c18f3e8d3b461472619302ff8f0bfd762bccb3624c81160",
+    "consumer/lakefile.toml": "49dcc0575d7ef815cbd4950ee1d60b692587e7bfdcabf268f588c753935752fe",
+    "consumer/lean-toolchain": "54727eec5cba149c18842e6deb5c41b369d66455c93ce135d7d5347c782b2325",
+    "lakefile.toml": "5407ec76ec80fe2eba3b75397f9910373499dcce2546831bd4f748b16d5c3d48",
     "lean-toolchain": "54727eec5cba149c18842e6deb5c41b369d66455c93ce135d7d5347c782b2325"
-  },
-  "publication": "Local release preparation; no remote publication, deployment, tag, or registry submission."
+  }
 }
