@@ -5,7 +5,7 @@ keywords = ["automation", "induction", "tactic", "software-verification"]
 license = "Apache-2.0"
 licenseFiles = ["LICENSE"]
 readmeFile = "README.md"
-# Release preparation is local. Enable indexing only when publication is approved.
+# Private release candidate. Enable indexing only when publication is approved.
 reservoir = false
 defaultTargets = ["Waterfall"]
 testDriver = "WaterfallTests"

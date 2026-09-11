@@ -6,13 +6,18 @@ is a compiled tutorial. The library exports the following small interfaces.
 | Module | Responsibility |
 | --- | --- |
 | `Waterfall` / `Waterfall.Tactic` | `waterfall`, `waterfall?`, `Mode`, `Options` |
-| `Waterfall.Core` | `Config`, `Stats`, `run`, engine transitions and root validation |
-| `Waterfall.Protocol` | `Move`, `Candidate`, `Job`, `Node`, `Space`, `SearchPolicy`, `Hooks` |
+| `Waterfall.Core` | `run`, engine transitions and root validation |
+| `Waterfall.Protocol` | `Config`, `Stats`, `Move`, `Candidate`, `Job`, `Node`, `Space`, `SearchPolicy`, `Hooks` |
 | `Waterfall.Choices` | Generic lazy selection, filtering, collection and commitment |
 | `Waterfall.Parallel` | Isolated concurrent trials, shared work accounting and cancellation |
 | `Waterfall.Committed` | ACL2-inspired callbacks over the shared engine |
 | `Waterfall.Observe` | Optional timing, control middleware, action recording and replay |
 | `Waterfall.Canonical` | Optional canonical goal encoding for replay checks |
+
+The [proof architecture walkthrough](IMPLEMENTATION.md) maps these interfaces to
+the named proof-stage generators and explains how their child obligations form
+one compatible proof continuation. Generator helpers are private; extensions
+use `movesFor`, `operations`, and `Hooks`.
 
 ## Tactic interface
 

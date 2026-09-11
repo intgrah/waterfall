@@ -11,10 +11,58 @@ the engine still owns rollback, accounting and final proof validation.
 open Lean Elab Tactic
 namespace Waterfall
 
+-- Two independent limits matter: effort bounds the number of attempted moves;
+-- Lean's ambient heartbeat budget bounds all work, including move enumeration.
+-- The initial per-move slice grows with strength. The public effort knob gives
+-- the search more opportunities to reach both deeper plans and stronger moves.
+/-- Engine resource and enumeration controls. `effort` is the usual tuning knob.
+All heartbeat counts here are raw, unlike Lean's `maxHeartbeats` option units. -/
+structure Config where
+  /-- Global number of attempted proof operations, including failed branches. -/
+  effort : Nat := 1000
+  /-- Base raw heartbeat slice for an operation; trial strength scales it.
+  The actual slice never exceeds the enclosing remaining allowance. -/
+  attemptHeartbeats : Nat := 20000000
+  /-- Print the final search summary, including failure diagnostics. -/
+  report : Bool := false
+  /-- Generate batches only after earlier continuations fail. -/
+  lazy : Bool := true
+  /-- Delay applicability probes until their candidate is considered. -/
+  deferChecks : Bool := false
+  deriving Inhabited
+
+-- These counters live in IO.Ref so restoring a failed branch cannot refund work.
+-- `choices` comes from the winning checkpoint's plan after the whole trial
+-- succeeds. Its reverse chronological order is for diagnostics, not execution.
+/-- Work spent across all attempted branches, plus the winning proof path. -/
+structure Stats where
+  attempts : Nat := 0
+  nodes : Nat := 0
+  depth : Nat := 0
+  strength : Nat := 1
+  choices : Array String := #[]
+  deriving Inhabited
+
+
 /-- Groups retain the original operation order. Their generators can be delayed
 independently; reordering groups must retain every group to preserve reachability. -/
 inductive Group where
-  | close | basic | hypotheses | rules | library | forward | functions | induction
+  /-- Leaf solvers; an accepted move must leave no child obligations. -/
+  | close
+  /-- Introductions, extensionality, normalization and target splitting. -/
+  | basic
+  /-- Case analysis and inversion of assumptions. -/
+  | hypotheses
+  /-- Backward application of assumptions, supplied rules and constructors. -/
+  | rules
+  /-- Backward application of indexed library theorems. -/
+  | library
+  /-- Forward instantiation, introducing a derived assumption. -/
+  | forward
+  /-- Induction or case analysis following a function's recursive calls. -/
+  | functions
+  /-- Induction on data/evidence, with motive variants; ordinary data cases. -/
+  | induction
   deriving BEq, Repr, Inhabited, ToJson, FromJson
 
 def structuralGroups : Array Group :=
@@ -72,6 +120,9 @@ structure Outcome where
   count : Option Nat := none
   deriving Repr, Inhabited, ToJson, FromJson
 
+/-- A retained proof step: which operation was chosen, the full input agenda,
+and the number of premises it generated. Its input checkpoint is stored alongside
+it in `Node.plan`; observing local success alone does not retain a step. -/
 structure Selection where
   replayable : Bool
   action : ActionId

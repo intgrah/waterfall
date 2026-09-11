@@ -14,4 +14,4 @@ search policies, and optional observation/replay. It depends only on Lean.
 - No `unsafe`, admitted test proofs, legacy engine, or private benchmark corpus.
 - Commit completed stages. Publish, push, tag or deploy only when authorized.
 
-The current checkout is a local release candidate; publication is pending.
+The repository is private at samth/Waterfall; public release is pending.

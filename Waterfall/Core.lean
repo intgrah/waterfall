@@ -4,6 +4,18 @@ import Waterfall.Protocol
 Lean-native inductive proof search. This engine imports only its protocol and
 Lean; tactic syntax and optional search policies live in separate modules.
 
+Read `movesFor` for the proof vocabulary: close a leaf, prepare a conjecture,
+analyze assumptions, apply a rule backward, derive a fact forward, or induct.
+Each named generator returns deferred `Move`s, not already-changed proof states.
+`expand` tries one step; `proveAll` owns its entire continuation; `run` increases
+the available depth and solver strength until all original obligations close.
+Resource controls, counters and checkpoint data are declared in `Protocol`.
+
+Generators must capture only values valid in their input checkpoint. In
+particular, elaborator holes and fresh witnesses are created when a move runs,
+after restoring that checkpoint. Case/induction alternatives stay separate
+even when they share a helper: their order is part of recorded-plan replay.
+
 The default search uses iterative deepening over Lean proof operations. Every
 alternative owns its *entire continuation*, including sibling goals: a later
 failure can undo an earlier witness choice. Optional policies select among these
@@ -16,37 +28,6 @@ open Lean Meta Elab Tactic
 namespace Waterfall
 
 initialize registerTraceClass `Waterfall.search
-
--- Two independent limits matter: effort bounds the number of attempted moves;
--- Lean's ambient heartbeat budget bounds all work, including move enumeration.
--- The initial per-move slice grows with strength. The public effort knob gives
--- the search more opportunities to reach both deeper plans and stronger moves.
-/-- Engine resource and enumeration controls. `effort` is the usual tuning knob.
-All heartbeat counts here are raw, unlike Lean's `maxHeartbeats` option units. -/
-structure Config where
-  /-- Global number of attempted proof operations, including failed branches. -/
-  effort : Nat := 1000
-  /-- Base raw heartbeat slice for an operation; trial strength scales it.
-  The actual slice never exceeds the enclosing remaining allowance. -/
-  attemptHeartbeats : Nat := 20000000
-  /-- Print the final search summary, including failure diagnostics. -/
-  report : Bool := false
-  /-- Generate batches only after earlier continuations fail. -/
-  lazy : Bool := true
-  /-- Delay applicability probes until their candidate is considered. -/
-  deferChecks : Bool := false
-  deriving Inhabited
-
--- These counters live in IO.Ref so restoring a failed branch cannot refund work.
--- `choices` comes from the winning checkpoint's plan after the whole trial
--- succeeds. Its reverse chronological order is for diagnostics, not execution.
-structure Stats where
-  attempts : Nat := 0
-  nodes : Nat := 0
-  depth : Nat := 0
-  strength : Nat := 1
-  choices : Array String := #[]
-  deriving Inhabited
 
 private def tacticMove (label : String) (stx : TSyntax `tactic) : Move :=
   { cost := 1, label := label, run := evalTactic stx }
@@ -97,12 +78,19 @@ private def contextTerms (g : MVarId) : MetaM (Array Expr) := g.withContext do
       found.modify (·.push (mkFVar d.fvarId))
   return ← found.get
 
+/-- Shared simplifier configuration. Closing requires `done`; normalization
+leaves its changed obligations available to the continuation. -/
+private def simplification (rules : Array (TSyntax `term)) (strength : Nat) : TacticM (TSyntax `tactic) := do
+  let simpRules ← rules.mapM fun t => `(Lean.Parser.Tactic.simpLemma| $t:term)
+  let steps := quote (Simp.defaultMaxSteps * strength)
+  let discharge := quote (({} : Simp.Config).maxDischargeDepth * strength)
+  `(tactic| simp_all (config := {maxSteps := $steps, maxDischargeDepth := $discharge}) [$simpRules,*])
+
 /-- The leaves delegate inference to Lean. Progressing normalization and case
 analysis are separate moves, so a destructive normalization can be undone.
 -/
-private def closingMoves (rules : Array (TSyntax `term)) (strength : Nat) :
+private def closeGoal (rules : Array (TSyntax `term)) (strength : Nat) :
     TacticM (Array Move) := do
-  let simpRules ← rules.mapM fun t => `(Lean.Parser.Tactic.simpLemma| $t:term)
   -- Scale the leaf solver's own limits as well as its surrounding heartbeat
   -- slice. Extra outer time cannot help a solver stopped by an internal cap.
   let c : Grind.Config := {}
@@ -111,9 +99,7 @@ private def closingMoves (rules : Array (TSyntax `term)) (strength : Nat) :
     instances := c.instances * strength, ematch := c.ematch * strength,
     ringSteps := c.ringSteps * strength, acSteps := c.acSteps * strength,
     canonHeartbeats := c.canonHeartbeats * strength }
-  let steps := quote (Simp.defaultMaxSteps * strength)
-  let discharge := quote (({} : Simp.Config).maxDischargeDepth * strength)
-  let simp ← `(tactic| simp_all (config := {maxSteps := $steps, maxDischargeDepth := $discharge}) [$simpRules,*])
+  let simp ← simplification rules strength
   -- Recursive predicate constructors are also forward laws for the leaf solver.
   -- Keep this separate: recursive relation constructors can be expensive.
   -- After ordinary grind, try constructors of the recursive Prop at the target
@@ -162,7 +148,7 @@ private def closingMoves (rules : Array (TSyntax `term)) (strength : Nat) :
 -- metavariables. Unification fills fields where possible; every unresolved field
 -- remains an obligation. Nested witnesses blocked by reduction need more search
 -- machinery than this fallback, which chooses only the outer constructor.
-private def witnessMoves (g : MVarId) (ctor : Name) : TacticM (Array Move) := do
+private def chooseImplicitWitnesses (g : MVarId) (ctor : Name) : TacticM (Array Move) := do
   let choices ← withoutModifyingState do
     forallTelescopeReducing (← inferType (← mkConstWithFreshMVarLevels ctor)) fun xs _ => do
       let mut choices := #[]
@@ -188,7 +174,7 @@ private def customElim? (id : FVarId) (induction : Bool) : TacticM (Option Name)
 
 -- A registered view may expose recursion hidden by a nonrecursive wrapper.
 -- Keep raw cases as an alternative; only the registered path needs elaboration.
-private def caseMoves (g : MVarId) (id : FVarId) (recursive : Bool)
+private def caseAlternatives (g : MVarId) (id : FVarId) (recursive : Bool)
     (label : String) : TacticM (Array Move) := do
   let recursive := recursive || (← customElim? id true).isSome
   let raw : Move := {
@@ -203,220 +189,249 @@ private def caseMoves (g : MVarId) (id : FVarId) (recursive : Bool)
     let eliminator := mkIdent name
     evalTactic (← `(tactic| cases $target:term using $eliminator:ident)) }, raw]
 
-/-- Plans capture only values already valid at the caller's snapshot. In
-particular, do not capture `exprToSyntax` holes created during enumeration.
--/
-private def operationBatch (g : MVarId) (rules : Array (TSyntax `term))
-    (strength maxCost : Nat) (group : Group) : TacticM (Array Move) :=
-  g.withContext do
-    let mut out : Array Move := #[]
-    let lctx ← getLCtx
-    if group == .basic then
-      out := #[
-        { cost := 1, role := `prepare, label := "intro", run := liftMetaTactic fun goal => do return [(← goal.intro `_).2] },
-        { cost := 1, role := `prepare, label := "introduce binders", run := liftMetaTactic fun goal => do return [(← goal.intros).2] }]
-      -- Expose a pointwise obligation to the outer search. A failed leaf solver
-      -- cannot return its internal extensionality steps for later induction/cases.
-      let target ← whnf (← g.getType)
-      if let some (_, lhs, _) := target.eq? then
-        if (← whnf (← inferType lhs)).isForall then
-          out := out.push { cost := 1, role := `prepare, label := "function extensionality", run := do
-            let [child] ← g.apply (← mkConstWithFreshMVarLevels ``funext)
-              | throwError "not a function equality"
-            setGoals [(← child.intros).2] }
-      -- Normalization is also a structural alternative. Unlike the closing simp
-      -- above, it may leave changed goals for further planning and be rolled back.
-      let simpRules ← rules.mapM fun t => `(Lean.Parser.Tactic.simpLemma| $t:term)
-      let steps := quote (Simp.defaultMaxSteps * strength)
-      let discharge := quote (({} : Simp.Config).maxDischargeDepth * strength)
-      out := out.push { (tacticMove "normalize" (← `(tactic| simp_all (config := {maxSteps := $steps, maxDischargeDepth := $discharge}) [$simpRules,*]))) with role := `prepare }
-      out := out.push { cost := 1, label := "split target", run := liftMetaTactic fun goal => do
-        let some children ← splitTarget? goal | throwError "no target split"
-        return children }
-    if group == .hypotheses then
-      -- Decompose propositions before speculative induction on data.
-      for d in lctx do
-        if d.isImplementationDetail then continue
-        if ← isProp d.type then
-          out := out.push { cost := 1, label := "split hypothesis", run := do
-            let some cs ← splitLocalDecl? g d.fvarId | throwError "no hypothesis split"
-            setGoals cs }
-          let ty ← whnf d.type
-          if let .const n _ := ty.getAppFn then
-            if let some (.inductInfo info) := (← getEnv).find? n then
-              out := out ++ (← caseMoves g d.fvarId info.isRec "cases hypothesis")
-    if group == .rules then
-      -- Applying a rule also exposes metavariable-bearing premises. The search
-      -- continuation retains all of them, allowing later premises to infer data.
-      let provingProp ← isProp (← g.getType)
-      for d in lctx do
-        if d.isImplementationDetail then continue
-        -- Type-valued IHs construct derivations too. Avoid adding these irrelevant
-        -- applications to Prop goals; non-function values are handled by assumption.
-        if (← isProp d.type) || (!provingProp && (← whnf d.type).isForall) then
-          out := out.push { cost := 1, label := "apply hypothesis", run := do
-            setGoals (← g.apply (mkFVar d.fvarId)) }
-      -- User rules remain syntax until this branch runs. Their local references
-      -- must be elaborated in the restored goal's context, not a discarded branch.
-      for t in rules do
-        out := out.push <| tacticMove "apply rule" (← `(tactic| apply $t))
-      -- Backward construction can leave data metavariables shared by its premises.
-      -- Trying each constructor separately lets later premises reject a witness.
-      let ty ← whnf (← g.getType)
+/-- Introduce binders, expose pointwise equality, normalize, or split the target. -/
+private def prepareGoal (g : MVarId) (rules : Array (TSyntax `term)) (strength : Nat) : TacticM (Array Move) := do
+  let mut out : Array Move := #[
+    { cost := 1, role := `prepare, label := "intro", run := liftMetaTactic fun goal => do return [(← goal.intro `_).2] },
+    { cost := 1, role := `prepare, label := "introduce binders", run := liftMetaTactic fun goal => do return [(← goal.intros).2] }]
+  -- Expose a pointwise obligation to the outer search. A failed leaf solver
+  -- cannot return its internal extensionality steps for later induction/cases.
+  let target ← whnf (← g.getType)
+  if let some (_, lhs, _) := target.eq? then
+    if (← whnf (← inferType lhs)).isForall then
+      out := out.push { cost := 1, role := `prepare, label := "function extensionality", run := do
+        let [child] ← g.apply (← mkConstWithFreshMVarLevels ``funext)
+          | throwError "not a function equality"
+        setGoals [(← child.intros).2] }
+  -- Normalization is also a structural alternative. Unlike the closing simp
+  -- above, it may leave changed goals for further planning and be rolled back.
+  out := out.push { (tacticMove "normalize" (← simplification rules strength)) with role := `prepare }
+  out := out.push { cost := 1, label := "split target", run := liftMetaTactic fun goal => do
+    let some children ← splitTarget? goal | throwError "no target split"
+    return children }
+  return out
+
+/-- Split hypothesis expressions and invert inductive evidence. -/
+private def analyzeHypotheses (g : MVarId) : TacticM (Array Move) := do
+  let mut out : Array Move := #[]
+  -- Decompose propositions before speculative induction on data.
+  for d in (← getLCtx) do
+    if d.isImplementationDetail then continue
+    if ← isProp d.type then
+      out := out.push { cost := 1, label := "split hypothesis", run := do
+        let some cs ← splitLocalDecl? g d.fvarId | throwError "no hypothesis split"
+        setGoals cs }
+      let ty ← whnf d.type
       if let .const n _ := ty.getAppFn then
         if let some (.inductInfo info) := (← getEnv).find? n then
-          for ctor in info.ctors do
-            out := out.push { cost := 1, label := s!"constructor {ctor}", run := do
-              setGoals (← g.apply (← mkConstWithFreshMVarLevels ctor)) }
-          if maxCost >= 2 then
-            for ctor in info.ctors do out := out ++ (← witnessMoves g ctor)
-    if group == .library then
-      -- Library search remains available at cost two; direct operations cost one.
+          out := out ++ (← caseAlternatives g d.fvarId info.isRec "cases hypothesis")
+  return out
+
+/-- Reason backward using local hypotheses, supplied rules, and target constructors. -/
+private def applyRules (g : MVarId) (rules : Array (TSyntax `term)) (maxCost : Nat) : TacticM (Array Move) := do
+  let mut out : Array Move := #[]
+  -- Applying a rule also exposes metavariable-bearing premises. The search
+  -- continuation retains all of them, allowing later premises to infer data.
+  let provingProp ← isProp (← g.getType)
+  for d in (← getLCtx) do
+    if d.isImplementationDetail then continue
+    -- Type-valued IHs construct derivations too. Avoid adding these irrelevant
+    -- applications to Prop goals; non-function values are handled by assumption.
+    if (← isProp d.type) || (!provingProp && (← whnf d.type).isForall) then
+      out := out.push { cost := 1, label := "apply hypothesis", run := do
+        setGoals (← g.apply (mkFVar d.fvarId)) }
+  -- User rules remain syntax until this branch runs. Their local references
+  -- must be elaborated in the restored goal's context, not a discarded branch.
+  for t in rules do
+    out := out.push <| tacticMove "apply rule" (← `(tactic| apply $t))
+  -- Backward construction can leave data metavariables shared by its premises.
+  -- Trying each constructor separately lets later premises reject a witness.
+  let ty ← whnf (← g.getType)
+  if let .const n _ := ty.getAppFn then
+    if let some (.inductInfo info) := (← getEnv).find? n then
+      for ctor in info.ctors do
+        out := out.push { cost := 1, label := s!"constructor {ctor}", run := do
+          setGoals (← g.apply (← mkConstWithFreshMVarLevels ctor)) }
       if maxCost >= 2 then
-        -- Reuse Lean's indexed theorem retrieval, including iff directions. Keep
-        -- each application in the same continuation search as explicit user rules.
-        for (name, direction) in ← LibrarySearch.libSearchFindDecls (← g.getType) do
-          -- Index matches are approximate. A deferred probe avoids checking
-          -- unused later matches. Failed probes never consume an attempt.
-          out := out.push {
-            cost := 2, label := s!"apply library {name}",
-            check := some <| g.withContext do
-              try
-                discard <| g.apply (← LibrarySearch.mkLibrarySearchLemma name direction)
-                pure true
-              catch _ => pure false
-            run := do setGoals (← g.apply (← LibrarySearch.mkLibrarySearchLemma name direction)) }
-    if group == .forward then
-      let ts ← contextTerms g
-      for d in lctx do
-        if d.isImplementationDetail || !(← isProp d.type) then continue
-        let .forallE _ domain _ _ ← whnf d.type | continue
-        -- Besides existing terms, try bounded unary-constructor chains. This adds
-        -- useful instances such as h (succ n), without an unbounded term generator.
-        let mut wrappers := #[none]
-        if !(← isProp domain) then
-          if let .const n _ := (← whnf domain).getAppFn then
-            if let some (.inductInfo info) := (← getEnv).find? n then
-              for c in info.ctors do
-                if (← getConstInfoCtor c).numFields == 1 then
-                  wrappers := wrappers.push (some c)
-        for t in ts do
-          unless ← withoutModifyingState (isDefEq (← inferType t) domain) do continue
-          for wrapper in wrappers do
-            for depth in [:if wrapper.isSome then strength + 1 else 1] do
-              out := out.push { cost := 1, label := "forward hypothesis", run := g.withContext do
-                let mut arg := t
-                if let some c := wrapper then
-                  for _ in [:depth + 1] do arg ← mkAppM c #[arg]
-                -- Apply one binder at a time; any remaining binders stay quantified
-                -- in the new fact and may be instantiated by a later search step.
-                let proof := mkApp (mkFVar d.fvarId) arg
-                check proof
-                let conclusion ← instantiateMVars (← inferType proof)
-                for h in (← getLCtx) do
-                  if h.type == conclusion then throwError "duplicate forward fact"
-                let (_, goal) ← g.note (← mkFreshUserName `derived) proof
-                setGoals [goal] }
-    if group == .functions then
-      let ts ← contextTerms g
-      -- Functional induction/cases follow the recursion of calls occurring in the
-      -- current problem. An explicit definition rule may expose imported recursion.
-      let mut definitions ← goalDefinitions g
-      for r in rules do
-        if !r.raw.isIdent then continue
-        let some n ← (try pure (some (← resolveGlobalConstNoOverload r)) catch _ => pure none)
-          | continue
-        if let some info := (← getEnv).findAsync? n then
-          if info.kind == .defn && !definitions.contains n then
-            definitions := definitions.push n
-      let calls ← ts.filterM fun call => do
-        let .const n _ := call.getAppFn | return false
-        if !call.isApp || !definitions.contains n then return false
-        return !(← whnf (← inferType call)).isForall
-      -- Prefer computation calls before predicates, but retain both in the search.
-      -- A call whose result is still a function is not a complete elimination target.
-      let dataCalls ← calls.filterM fun c => return !(← isProp c)
-      let propCalls ← calls.filterM fun c => isProp c
-      for call in dataCalls ++ propCalls do
-        for casesOnly in [false, true] do
-          out := out.push {
-            cost := 1,
-            induction := if casesOnly then .none else .functional,
-            label := if casesOnly then "function cases" else "function induction", run := g.withContext do
-              let mut others := #[]
-              for d in (← getLCtx) do
-                unless d.isImplementationDetail || call.containsFVar d.fvarId ||
-                    (← isProp d.type) || (← isType (mkFVar d.fvarId)) do
-                  others := others.push d.fvarId
-              -- Cases need the current assumptions, not a generalized motive.
-              let (_, goal) ← g.revert (if casesOnly then #[] else others)
-              setGoals [goal]
-              -- exprToSyntax can allocate elaborator holes: create them only here,
-              -- after this alternative's snapshot has been restored.
-              let t ← goal.withContext <| Term.exprToSyntax call
-              evalTactic (← if casesOnly then `(tactic| fun_cases $t)
-                else `(tactic| fun_induction $t)) }
-    if group == .induction then
-      for d in lctx do
-        if d.isImplementationDetail then continue
-        let ty ← whnf d.type
-        let .const n _ := ty.getAppFn | continue
-        let some (.inductInfo info) := (← getEnv).find? n | continue
-        if info.isRec || (← customElim? d.fvarId true).isSome then
-          let kind : InductionKind := if (← isProp d.type) then .evidence else .data
-          -- Generalize data not occurring in the major premise's type. Lean's
-          -- revert closes over dependencies and builds the quantified motive.
-          let mut others : Array FVarId := #[]
-          for other in lctx do
-            if other.isImplementationDetail || other.fvarId == d.fvarId then continue
-            if !(← isProp other.type) && !(← isType (mkFVar other.fvarId)) &&
-                !d.type.containsFVar other.fvarId then
-              others := others.push other.fvarId
-          -- Ordinary Lean induction handles indexed relations as well as data.
-          -- The lower-level MVarId.induction API alone does not perform all of its
-          -- index preparation, so replacing this adapter needs equivalent handling.
-          let induce (generalize : Array FVarId) (abstractIndices := false) : TacticM Unit := do
-            let (reverted, goal) ← g.revert generalize
-            let mut goal := goal
-            let mut major := mkFVar d.fvarId
-            if abstractIndices then
-              -- Fixed indices must become variables before ordinary induction.
-              -- Keep equations, so the motive and IH retain their original meaning.
-              let mut args : Array GeneralizeArg := #[]
-              for index in ty.getAppArgs[info.numParams:] do
-                unless index.isFVar || args.any (·.expr == index) do
-                  args := args.push {expr := index, hName? := some (← mkFreshUserName `index_eq)}
-              if args.isEmpty then throwError "no fixed induction indices"
-              let (subst, _, prepared) ← goal.withContext <| goal.generalizeHyp args #[d.fvarId]
-              goal := prepared
-              major := subst.apply major
-            setGoals [goal]
-            let majorSyntax ← goal.withContext <| Term.exprToSyntax major
-            evalTactic (← `(tactic| induction $majorSyntax:term))
-            -- Revert closes over dependent hypotheses too. Reintroduce the full
-            -- returned list, not merely the variables explicitly selected above.
-            let children ← (← getUnsolvedGoals).mapM fun child => do
-              return (← child.introNP reverted.size).2
-            setGoals children
-          if !others.isEmpty then
-            out := out.push { cost := 1, induction := kind, major := some d.fvarId, label := s!"induction {d.userName} generalized", run := induce others }
-          out := out.push { cost := 1, induction := kind, major := some d.fvarId, label := s!"induction {d.userName}", run := induce #[] }
-          if ty.getAppArgs[info.numParams:].any (fun index => !index.isFVar) then
-            out := out.push { cost := 1, induction := kind, major := some d.fvarId, label := s!"induction {d.userName} abstract indices", run := induce #[] true }
-            if !others.isEmpty then
-              out := out.push { cost := 1, induction := kind, major := some d.fvarId, label := s!"induction {d.userName} generalized abstract indices", run := induce others true }
-        -- Noninductive case analysis is another alternative, useful for tests and
-        -- discriminants where induction would introduce irrelevant hypotheses.
-        if !(← isProp d.type) then
-          out := out ++ (← caseMoves g d.fvarId info.isRec s!"cases {d.userName}")
-    return out
+        for ctor in info.ctors do out := out ++ (← chooseImplicitWitnesses g ctor)
+  return out
+
+/-- Retrieve indexed library theorems and offer their individual applications. -/
+private def applyLibraryTheorems (g : MVarId) (maxCost : Nat) : TacticM (Array Move) := do
+  let mut out : Array Move := #[]
+  -- Library search remains available at cost two; direct operations cost one.
+  if maxCost >= 2 then
+    -- Reuse Lean's indexed theorem retrieval, including iff directions. Keep
+    -- each application in the same continuation search as explicit user rules.
+    for (name, direction) in ← LibrarySearch.libSearchFindDecls (← g.getType) do
+      -- Index matches are approximate. A deferred probe avoids checking
+      -- unused later matches. Failed probes never consume an attempt.
+      out := out.push {
+        cost := 2, label := s!"apply library {name}",
+        check := some <| g.withContext do
+          try
+            discard <| g.apply (← LibrarySearch.mkLibrarySearchLemma name direction)
+            pure true
+          catch _ => pure false
+        run := do setGoals (← g.apply (← LibrarySearch.mkLibrarySearchLemma name direction)) }
+  return out
+
+/-- Derive new facts by instantiating quantified hypotheses with available terms. -/
+private def instantiateHypotheses (g : MVarId) (strength : Nat) : TacticM (Array Move) := do
+  let mut out : Array Move := #[]
+  let ts ← contextTerms g
+  for d in (← getLCtx) do
+    if d.isImplementationDetail || !(← isProp d.type) then continue
+    let .forallE _ domain _ _ ← whnf d.type | continue
+    -- Besides existing terms, try bounded unary-constructor chains. This adds
+    -- useful instances such as h (succ n), without an unbounded term generator.
+    let mut wrappers := #[none]
+    if !(← isProp domain) then
+      if let .const n _ := (← whnf domain).getAppFn then
+        if let some (.inductInfo info) := (← getEnv).find? n then
+          for c in info.ctors do
+            if (← getConstInfoCtor c).numFields == 1 then
+              wrappers := wrappers.push (some c)
+    for t in ts do
+      unless ← withoutModifyingState (isDefEq (← inferType t) domain) do continue
+      for wrapper in wrappers do
+        for depth in [:if wrapper.isSome then strength + 1 else 1] do
+          out := out.push { cost := 1, label := "forward hypothesis", run := g.withContext do
+            let mut arg := t
+            if let some c := wrapper then
+              for _ in [:depth + 1] do arg ← mkAppM c #[arg]
+            -- Apply one binder at a time; any remaining binders stay quantified
+            -- in the new fact and may be instantiated by a later search step.
+            let proof := mkApp (mkFVar d.fvarId) arg
+            check proof
+            let conclusion ← instantiateMVars (← inferType proof)
+            for h in (← getLCtx) do
+              if h.type == conclusion then throwError "duplicate forward fact"
+            let (_, goal) ← g.note (← mkFreshUserName `derived) proof
+            setGoals [goal] }
+  return out
+
+/-- Offer functional induction and case analysis for calls in the conjecture. -/
+private def followRecursion (g : MVarId) (rules : Array (TSyntax `term)) : TacticM (Array Move) := do
+  let mut out : Array Move := #[]
+  let ts ← contextTerms g
+  -- Functional induction/cases follow the recursion of calls occurring in the
+  -- current problem. An explicit definition rule may expose imported recursion.
+  let mut definitions ← goalDefinitions g
+  for r in rules do
+    if !r.raw.isIdent then continue
+    let some n ← (try pure (some (← resolveGlobalConstNoOverload r)) catch _ => pure none)
+      | continue
+    if let some info := (← getEnv).findAsync? n then
+      if info.kind == .defn && !definitions.contains n then
+        definitions := definitions.push n
+  let calls ← ts.filterM fun call => do
+    let .const n _ := call.getAppFn | return false
+    if !call.isApp || !definitions.contains n then return false
+    return !(← whnf (← inferType call)).isForall
+  -- Prefer computation calls before predicates, but retain both in the search.
+  -- A call whose result is still a function is not a complete elimination target.
+  let dataCalls ← calls.filterM fun c => return !(← isProp c)
+  let propCalls ← calls.filterM fun c => isProp c
+  for call in dataCalls ++ propCalls do
+    for casesOnly in [false, true] do
+      out := out.push {
+        cost := 1,
+        induction := if casesOnly then .none else .functional,
+        label := if casesOnly then "function cases" else "function induction", run := g.withContext do
+          let mut others := #[]
+          for d in (← getLCtx) do
+            unless d.isImplementationDetail || call.containsFVar d.fvarId ||
+                (← isProp d.type) || (← isType (mkFVar d.fvarId)) do
+              others := others.push d.fvarId
+          -- Cases need the current assumptions, not a generalized motive.
+          let (_, goal) ← g.revert (if casesOnly then #[] else others)
+          setGoals [goal]
+          -- exprToSyntax can allocate elaborator holes: create them only here,
+          -- after this alternative's snapshot has been restored.
+          let t ← goal.withContext <| Term.exprToSyntax call
+          evalTactic (← if casesOnly then `(tactic| fun_cases $t)
+            else `(tactic| fun_induction $t)) }
+  return out
+
+/-- How to prepare the induction motive. Generalized variables are universally
+quantified in the cases; abstracting fixed indices retains their equations. The
+major premise and its induction kind belong to the enclosing proposed move. -/
+private structure MotivePlan where
+  generalize : Array FVarId := #[]
+  abstractIndices : Bool := false
+
+/-- Induct on data or evidence, varying the motive; also retain ordinary data cases. -/
+private def inductOrAnalyzeData (g : MVarId) : TacticM (Array Move) := do
+  let mut out : Array Move := #[]
+  let lctx ← getLCtx
+  for d in lctx do
+    if d.isImplementationDetail then continue
+    let ty ← whnf d.type
+    let .const n _ := ty.getAppFn | continue
+    let some (.inductInfo info) := (← getEnv).find? n | continue
+    if info.isRec || (← customElim? d.fvarId true).isSome then
+      let kind : InductionKind := if (← isProp d.type) then .evidence else .data
+      -- Generalize data not occurring in the major premise's type. Lean's
+      -- revert closes over dependencies and builds the quantified motive.
+      let mut others : Array FVarId := #[]
+      for other in lctx do
+        if other.isImplementationDetail || other.fvarId == d.fvarId then continue
+        if !(← isProp other.type) && !(← isType (mkFVar other.fvarId)) &&
+            !d.type.containsFVar other.fvarId then
+          others := others.push other.fvarId
+      -- Ordinary Lean induction handles indexed relations as well as data.
+      -- The lower-level MVarId.induction API alone does not perform all of its
+      -- index preparation, so replacing this adapter needs equivalent handling.
+      let inductWithMotive (motive : MotivePlan) : TacticM Unit := do
+        let (reverted, goal) ← g.revert motive.generalize
+        let mut goal := goal
+        let mut major := mkFVar d.fvarId
+        if motive.abstractIndices then
+          -- Fixed indices must become variables before ordinary induction.
+          -- Keep equations, so the motive and IH retain their original meaning.
+          let mut args : Array GeneralizeArg := #[]
+          for index in ty.getAppArgs[info.numParams:] do
+            unless index.isFVar || args.any (·.expr == index) do
+              args := args.push {expr := index, hName? := some (← mkFreshUserName `index_eq)}
+          if args.isEmpty then throwError "no fixed induction indices"
+          let (subst, _, prepared) ← goal.withContext <| goal.generalizeHyp args #[d.fvarId]
+          goal := prepared
+          major := subst.apply major
+        setGoals [goal]
+        let majorSyntax ← goal.withContext <| Term.exprToSyntax major
+        evalTactic (← `(tactic| induction $majorSyntax:term))
+        -- Revert closes over dependent hypotheses too. Reintroduce the full
+        -- returned list, not merely the variables explicitly selected above.
+        let children ← (← getUnsolvedGoals).mapM fun child => do
+          return (← child.introNP reverted.size).2
+        setGoals children
+      if !others.isEmpty then
+        out := out.push { cost := 1, induction := kind, major := some d.fvarId, label := s!"induction {d.userName} generalized", run := inductWithMotive {generalize := others} }
+      out := out.push { cost := 1, induction := kind, major := some d.fvarId, label := s!"induction {d.userName}", run := inductWithMotive {} }
+      if ty.getAppArgs[info.numParams:].any (fun index => !index.isFVar) then
+        out := out.push { cost := 1, induction := kind, major := some d.fvarId, label := s!"induction {d.userName} abstract indices", run := inductWithMotive {abstractIndices := true} }
+        if !others.isEmpty then
+          out := out.push { cost := 1, induction := kind, major := some d.fvarId, label := s!"induction {d.userName} generalized abstract indices", run := inductWithMotive {generalize := others, abstractIndices := true} }
+    -- Noninductive case analysis is another alternative, useful for tests and
+    -- discriminants where induction would introduce irrelevant hypotheses.
+    if !(← isProp d.type) then
+      out := out ++ (← caseAlternatives g d.fvarId info.isRec s!"cases {d.userName}")
+  return out
 
 /-- Generating one group never requires enumerating a later group. Values captured
 by its moves belong to this input snapshot, exactly as for eager enumeration. -/
 def movesFor (g : MVarId) (rules : Array (TSyntax `term)) (strength remaining : Nat)
     (group : Group) : TacticM (Array Move) :=
-  if group == .close then closingMoves rules strength
-  else operationBatch g rules strength remaining group
+  match group with
+  | .close => closeGoal rules strength
+  | .basic => g.withContext <| prepareGoal g rules strength
+  | .hypotheses => g.withContext <| analyzeHypotheses g
+  | .rules => g.withContext <| applyRules g rules remaining
+  | .library => g.withContext <| applyLibraryTheorems g remaining
+  | .forward => g.withContext <| instantiateHypotheses g strength
+  | .functions => g.withContext <| followRecursion g rules
+  | .induction => g.withContext <| inductOrAnalyzeData g
 
 def prepareRules (g : MVarId) (rules : Array (TSyntax `term)) : TacticM (Array (TSyntax `term)) := do
   return rules ++ terms (← goalDefinitions g)
@@ -429,9 +444,9 @@ def operations (g : MVarId) (rules : Array (TSyntax `term)) (strength : Nat := 1
 
 /-- Reject no-op normalization without a global memo. Including local types
 matters: a useful rewrite can change only a hypothesis. Fvar identity is safe
-here because this signature is compared only across a single local operation.
+here because this conjecture shape is compared only across a single local operation.
 -/
-private def signature (g : MVarId) : MetaM (List Expr) := g.withContext do
+private def conjectureShape (g : MVarId) : MetaM (List Expr) := g.withContext do
   let mut es := [(← instantiateMVars (← g.getType))]
   for d in (← getLCtx) do
     if !d.isImplementationDetail then es := (← instantiateMVars d.type) :: es
@@ -483,7 +498,7 @@ def expand (cfg : Config) (stats : IO.Ref Stats) (hooks : Hooks)
   let span : Span := { phase := .node, depth := job.remaining, strength }
   setGoals [job.goal]
   let saved ← Tactic.saveState
-  let before ← signature job.goal
+  let before ← conjectureShape job.goal
   let localRules ← prepareRules job.goal rules
   let probe (candidate : Candidate) : TacticM Bool := do
     if candidate.move.check.isNone then return true
@@ -548,7 +563,7 @@ def expand (cfg : Config) (stats : IO.Ref Stats) (hooks : Hooks)
           if closing && !children.isEmpty then continue
           if !closing then
             if let [child] := children then
-              if (← signature child) == before then continue
+              if (← conjectureShape child) == before then continue
           let next := children.map fun g => { job with
             goal := g, remaining := job.remaining - cost, ancestors := candidate :: job.ancestors }
           let selected : Selection := {
@@ -566,7 +581,7 @@ def expand (cfg : Config) (stats : IO.Ref Stats) (hooks : Hooks)
 interface can also feed an explicit frontier, beam, or best-first traversal.
 Every checkpoint restores the whole compatible state; only a complete agenda
 can become a winning plan. -/
-private partial def search (cfg : Config) (stats : IO.Ref Stats) (hooks : Hooks)
+private partial def proveAll (cfg : Config) (stats : IO.Ref Stats) (hooks : Hooks)
     (rules : Array (TSyntax `term)) (root : Node hooks.policy.State)
     (node : Node hooks.policy.State) (win : IO.Ref (List (Selection × Tactic.SavedState))) : TacticM Bool := do
   node.saved.restore true
@@ -599,7 +614,7 @@ private partial def search (cfg : Config) (stats : IO.Ref Stats) (hooks : Hooks)
         depth := step.map (·.remaining) |>.getD span.depth,
         induction := step.map (·.induction) |>.getD .none,
         label := step.map (·.label) |>.getD "restart checkpoint" }
-        (search cfg stats hooks rules root next win)
+        (proveAll cfg stats hooks rules root next win)
     unless ok do node.saved.restore true
     return ok
 
@@ -625,14 +640,14 @@ def run (cfg : Config) (rules : Array (TSyntax `term) := #[])
   let stats ← IO.mkRef ({} : Stats)
   let start ← IO.getNumHeartbeats
   tryCatchRuntimeEx (hooks.around { phase := .run } (fun _ => { success := some true }) do
-    let trial (depth strength : Nat) : TacticM Bool := do
+    let proveAtDepthAndStrength (depth strength : Nat) : TacticM Bool := do
       saved.restore true
       stats.modify fun s => { s with depth, strength }
       let root : Node hooks.policy.State := {
         saved, jobs := original.map (Job.mk · depth []),
         state := hooks.policy.initial }
       let win ← IO.mkRef []
-      let ok ← hooks.bool { phase := .trial, depth, strength } (search cfg stats hooks rules root root win)
+      let ok ← hooks.bool { phase := .trial, depth, strength } (proveAll cfg stats hooks rules root root win)
       if ok then
         for (selection, snapshot) in ← win.get do
           hooks.accepted selection snapshot
@@ -648,7 +663,7 @@ def run (cfg : Config) (rules : Array (TSyntax `term) := #[])
       for (depth, strength) in hooks.trials round do
         if (← stats.get).attempts >= cfg.effort then break
         unless strength > 0 do throwError "waterfall trial strength must be positive"
-        if ← trial depth strength then
+        if ← proveAtDepthAndStrength depth strength then
           success := true
           break
     let s ← stats.get

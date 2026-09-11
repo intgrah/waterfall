@@ -1,8 +1,9 @@
 # Release preparation
 
-This is a local candidate, version `0.1.0-rc.1`, with no Git remote, release tag,
-public website or registry submission. `reservoir = false` prevents indexing
-if this snapshot is later put on GitHub before release approval.
+This is a private candidate, version `0.1.0-rc.1`, hosted at
+[samth/Waterfall](https://github.com/samth/Waterfall). There is no release tag,
+public website or registry submission. `reservoir = false` keeps indexing disabled
+pending public release approval.
 
 The package uses Lean 4.30.0, has no external library dependencies, and contains
 Apache-2.0 licensing, Lake metadata, a compiled tutorial, regression tests, a
@@ -12,8 +13,9 @@ experiments are excluded.
 
 Before publication, after maintainer approval:
 
-1. Choose and create the public Git repository; add its actual URL to the
-   installation examples and package metadata. Do not guess a registry scope.
+1. Approve public visibility for the existing repository and add the chosen Git
+   installation coordinate to the examples and package metadata. Do not guess
+   a registry scope.
 2. Change the version to the approved release and enable Reservoir indexing.
 3. Run the documented checks from a clean clone, including `consumer/`.
 4. Create the corresponding version tag and publish it with the source.
@@ -27,4 +29,4 @@ indexing requirements and behavior should be checked again at publication time:
 [Lake distribution documentation](https://lean-lang.org/doc/reference/latest/Build-Tools-and-Distribution/Lake/).
 
 No automatic deployment workflow or release-upload script is enabled. The
-`ci.yml` workflow only builds and checks source when a remote is later added.
+`ci.yml` workflow builds and checks source on pushes and pull requests.
