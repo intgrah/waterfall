@@ -9,7 +9,7 @@
   
 </head>
 <body>
-<header><a class="wordmark" href="index.html">Waterfall</a><nav aria-label="Main"><a href="index.html">Overview</a><a href="examples.html" aria-current="page">Examples</a><a href="guide.html">Guide</a><a href="reference.html">Reference</a></nav></header>
+<header><a class="wordmark" href="./">Waterfall</a><nav aria-label="Main"><a href="./">Overview</a><a href="examples.html" aria-current="page">Examples</a><a href="guide.html">Guide</a><a href="reference.html">Reference</a></nav></header>
 <main class="prose">
 <div class="hero"><span class="eyebrow">Software Foundations in Lean</span><h1>Read the goal.<br>Follow the proof.</h1><p class="lede">Three small developments show where Waterfall helps: recursive definitions, case analysis, helper lemmas and induction.</p></div>
 <p>These adaptations import only Waterfall and prove all their helper theorems. The <a href="../Docs/Examples.lean">complete source file</a> is checked by <code>lake test</code> on Lean 4.33.1 and 4.30.0. After <code>lake build</code>, run it directly with <code>lake env lean Docs/Examples.lean</code>.</p>
@@ -154,7 +154,7 @@ theorem fast_elements_correct (t : Tree V) :
 
 end Waterfall.Examples.TreeTraversal</code></pre></details>
 <p class="code-caption">Adapted from <a href="https://softwarefoundations.cis.upenn.edu/vfa-current/SearchTree.html">Software Foundations: SearchTree</a>.</p></section>
-<section><h2>From examples to evaluation</h2><p>These examples demonstrate proof structure; they are not an independently selected coverage benchmark. The separate VFA development panel measured 43/53 search successes and 34/53 committed successes on Lean 4.30.0, with larger budgets and preceding helper facts supplied as assumptions.</p><p><a href="index.html#results">Read the results and their scope</a> · <a href="guide.html#proof-hints">Get checked proof scripts with waterfall?</a></p></section>
+<section><h2>From examples to evaluation</h2><p>These examples demonstrate proof structure; they are not an independently selected coverage benchmark. The separate VFA development panel measured 43/53 search successes and 34/53 committed successes on Lean 4.30.0, with larger budgets and preceding helper facts supplied as assumptions.</p><p><a href="./#results">Read the results and their scope</a> · <a href="guide.html#proof-hints">Get checked proof scripts with waterfall?</a></p></section>
 </main>
 <footer><span>Waterfall 0.1 · Lean 4.33.1</span><span><a href="../LICENSE">Apache-2.0</a> · Private release candidate</span></footer>
 </body>
