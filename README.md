@@ -127,7 +127,7 @@ hypotheses are used automatically.
 
 See the [compiled Lean tutorial](Docs/Guide.lean), [user guide](docs/GUIDE.md),
 and [API reference](docs/API.md). For a guided source review, read the
-[proof architecture](docs/IMPLEMENTATION.md). The website includes an option configurator.
+[proof architecture](docs/IMPLEMENTATION.md). The website includes usage examples and an option reference.
 
 Use `waterfall (cpus := 4)` to explore different depth/strength trials of the
 same policy concurrently on at most four dedicated worker threads. The first completed proof wins; timings,
