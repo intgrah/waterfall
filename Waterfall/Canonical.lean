@@ -96,11 +96,12 @@ private def localContext (context : LocalContext) : Encode Json := do
     modify fun s => { s with declared := s.declared.push declaration.fvarId }
   for declaration in context do
     let id ← fvar declaration.fvarId
-    declarations := declarations.push (← match declaration with
+    let entry ← match declaration with
       | .cdecl _ _ _ type info kind => do
-        return node "local" #[id, .str (reprStr info), .str (reprStr kind), ← expr type]
+        pure <| node "local" #[id, .str (reprStr info), .str (reprStr kind), ← expr type]
       | .ldecl _ _ _ type value nondep kind => do
-        return node "local-value" #[id, toJson nondep, .str (reprStr kind), ← expr type, ← expr value])
+        pure <| node "local-value" #[id, toJson nondep, .str (reprStr kind), ← expr type, ← expr value]
+    declarations := declarations.push entry
   return .arr declarations
 
 private def instances (values : LocalInstances) : Encode Json := do
@@ -120,7 +121,7 @@ private def declaration (id : MVarId) : Encode Json := do
   let delayed ← match context.dAssignment.find? id with
     | none => pure Json.null
     | some value => do
-      return node "delayed" #[.arr (← value.fvars.mapM expr), ← mvar value.mvarIdPending]
+      pure <| node "delayed" #[.arr (← value.fvars.mapM expr), ← mvar value.mvarIdPending]
   return node "declaration" #[locals, type, localInstances, .str (reprStr decl.kind),
     toJson decl.depth, toJson decl.numScopeArgs, assignment, delayed]
 
@@ -139,7 +140,7 @@ private def encode (goals : List MVarId) (postponed : Array PostponedEntry) : En
   while universes.size < (← get).levels.size do
     let id := (← get).levels[universes.size]!
     let context := (← get).context
-    let some depth := context.lDepth.find? id | throwError "waterfall replay guard unsupported: unknown universe metavariable"
+    let some depth := context.findLevelDepth? id | throwError "waterfall replay guard unsupported: unknown universe metavariable"
     let assignment ← match context.lAssignment.find? id with
       | none => pure Json.null
       | some value => level value

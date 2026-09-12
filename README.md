@@ -2,18 +2,66 @@
 
 Small, configurable proof search for inductive Lean goals. Waterfall combines
 simplification, theorem application, case analysis and induction in one search
-engine. It depends only on Lean **4.30.0** and is licensed under Apache-2.0,
+engine. It depends only on Lean **4.33.1** and is licensed under Apache-2.0,
 the same license as Lean.
 
 ```lean
 import Waterfall
 
-example (xs : List Nat) : xs ++ [] = xs := by
-  waterfall
+inductive Tree (V : Type) where
+  | empty
+  | node (left : Tree V) (key : Nat) (value : V) (right : Tree V)
+
+def elements : Tree V → List (Nat × V)
+  | .empty => []
+  | .node left key value right => elements left ++ (key, value) :: elements right
+
+def fastElements : Tree V → List (Nat × V) → List (Nat × V)
+  | .empty, acc => acc
+  | .node left key value right, acc =>
+      fastElements left ((key, value) :: fastElements right acc)
+
+theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
+    fastElements t acc = elements t ++ acc := by
+  waterfall [elements, fastElements, List.append_assoc]
 ```
 
-This is a **private, unreleased candidate**, hosted at
+This is **Waterfall 0.1** (`0.1.0` in Lake), a **private, unreleased candidate**, hosted at
 [samth/Waterfall](https://github.com/samth/Waterfall). It is not registered in Reservoir. The website is in [site/index.html](site/index.html).
+
+The example above proves that an accumulator-based tree traversal returns the
+same elements as a traversal using list append. Waterfall finds an induction
+proof that covers the recursive calls with changed accumulators. It is adapted
+from Software Foundations' VFA SearchTree chapter; all definitions needed to run it are included.
+
+## Software Foundations
+
+Waterfall has proved substantial goals from Lean ports of **Software Foundations**,
+including its **Verified Functional Algorithms (VFA)** volume. In our latest
+53-goal VFA development panel, search closed **43/53** goals and committed mode
+closed **34/53**. Search successes include selection-sort permutation,
+merge-sort sortedness, red-black-tree lookup preservation, and binomial-heap
+validity. Every successful `waterfall?` replacement was compiled independently.
+
+These measurements used Lean **4.30.0**, effort **10,000**, and an **800M raw
+heartbeat** allowance; the default effort is 1,000. The panel spans six VFA
+chapters and is a selected development set, not a whole-book coverage estimate
+or a held-out test set. Benchmark targets receive preceding helper facts as
+assumptions. These figures are not a rerun on Lean 4.33.1.
+[Per-goal results and protocol](docs/reviews/2026-09-11/SUGGESTIONS.md).
+
+For small examples you can read and run, see [Docs/Examples.lean](Docs/Examples.lean):
+
+- **LF / Imp:** prove that eliminating `0 + e` preserves expression evaluation.
+- **VFA / Sort:** prove insertion preserves an inductive sortedness predicate;
+  combine Waterfall proofs with a short explicit permutation argument to verify
+  insertion sort.
+- **VFA / SearchTree:** prove accumulator-based tree traversal equivalent to
+  the simple implementation, as shown above.
+
+These standalone examples prove their own helper lemmas and import only
+Waterfall. They run in `lake test`; [the walkthrough](docs/EXAMPLES.md) explains
+the proof structure and supplied lemmas.
 
 ## Install locally with Lake
 
@@ -26,6 +74,7 @@ path = "../Waterfall"
 ```
 
 Use the same `lean-toolchain`, run `lake update`, then `import Waterfall`.
+The release targets Lean 4.33.1; CI also checks compatibility with Lean 4.30.0.
 Repository access is required to clone the private Git repository. Public
 distribution and Reservoir registration remain pending. [Release preparation](docs/RELEASE.md) records the
 remaining publication steps.
@@ -111,7 +160,7 @@ python3 scripts/build_site.py
 
 The inference engine has 499 noncomment lines. Including its protocol gives
 622; the complete default import, including both configured modes and the tactic
-interface, parallel scheduler and proof hints, is 1,051. Optional observation adds 316 lines. These counts include
+interface, parallel scheduler and proof hints, is 1,051. Optional observation adds 317 lines. These counts include
 local helpers; the package does not claim a sub-500-line complete import.
 
 [Proof-hint validation on all 111 goals](docs/reviews/2026-09-11/SUGGESTIONS.md)

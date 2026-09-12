@@ -1,0 +1,115 @@
+{
+  "release": "0.1",
+  "lake_version": "0.1.0",
+  "default_toolchain": "leanprover/lean4:v4.33.1",
+  "latest_stable_checked_utc_date": "2026-09-12",
+  "latest_stable_source": "https://github.com/leanprover/lean4/releases/tag/v4.33.1",
+  "base_commit": "706b7da87adf3b2f91e4362e48477693c1a56618",
+  "validation": {
+    "lean-4.33.1": {
+      "status": "passed",
+      "receipt": "lean-4.33.1.json",
+      "log": "lean-4.33.1.log.gz",
+      "log_sha256": "0b7291f99b2637aed85c8423cfcb294a667caa1a77cfda1cb53b132901057fb9",
+      "completed_utc": "2026-09-12T11:41:32.346170+00:00"
+    },
+    "lean-4.30.0": {
+      "status": "passed",
+      "receipt": "lean-4.30.0.json",
+      "log": "lean-4.30.0.log.gz",
+      "log_sha256": "90f2c6268f85a0065c4ecaf6002e5d2be66bf5ffa51dd68922a724f5a6022e8e",
+      "completed_utc": "2026-09-12T11:48:26.355403+00:00"
+    }
+  },
+  "source_sha256": {
+    "Waterfall/Observe.lean": "dcd5989da72eb17da78ac29cf453c5655297eaebda3bd35904c7bf9c5e13563d",
+    "Waterfall/Suggestions.lean": "8af87494d2a96acdc622769a68f878e2ea237db7993bfc3c75d8a6963e62d7b9",
+    "Waterfall/Committed.lean": "b042c0e4630be032b000a46230de9b67ff0e34e98fe0e0635383a86aa1872f6b",
+    "Waterfall/Protocol.lean": "6202db42be85f912cb1506202fd72752cf870c06ce23cde0f02e35b9717e1ced",
+    "Waterfall/Parallel.lean": "6ef0d02048b23ace6d045161f6a1fee1954a3d3f9439aa2f9f1020d569954c38",
+    "Waterfall/Core.lean": "e892dbd6af893fc3e25fccea10b9f5955744796b7266af9341386f2562c3d4f6",
+    "Waterfall/Tactic.lean": "f37d5abfea5ac40322595abab0bd0f71112dd6108f9f51095ea9be9f8121a9c7",
+    "Waterfall/Choices.lean": "9f9c0876996bb992c298b6b4aaad5966755dff40da0837d74faece4aadec8421",
+    "Waterfall/Canonical.lean": "9e851b7172629152cf047aa69567518a2611d96a0fd0a2e44256ecfa2e763abd",
+    "Docs/Examples.lean": "2ee5834252261f614e201cd9d722700a486c9856bcb664e5cfdd26f17f50a369",
+    "Docs/Guide.lean": "ea5fea7b94deb5ce6ed0aa95ccf69d1c6ee9840aa1a68d6d0c6d05eec551da99",
+    "consumer/Consumer.lean": "f0e6eb190b73882b2c18f3e8d3b461472619302ff8f0bfd762bccb3624c81160"
+  },
+  "checks": [
+    "lake build",
+    "lake build Waterfall.Observe",
+    "lake test",
+    "parallel tests on CPUs 0 and 1",
+    "parallel async test with one scheduler thread",
+    "compile literal README examples and check documentation links",
+    "implementation sizes",
+    "build static site",
+    "leanchecker Docs.Examples",
+    "consumer lake build",
+    "consumer leanchecker Consumer"
+  ],
+  "execution": {
+    "host": "dl",
+    "default_cpus": [
+      0
+    ],
+    "parallel_test_cpus": [
+      0,
+      1
+    ],
+    "nice": 15,
+    "local_lean_processes": 0,
+    "existing_cluster_development_runner": true
+  },
+  "examples": {
+    "file": "Docs/Examples.lean",
+    "theorems": 8,
+    "waterfall_proof_blocks": 7,
+    "manual_proof_blocks": 1,
+    "manual_theorem": "Waterfall.Examples.Sorting.sort_perm",
+    "admitted_helpers": false
+  },
+  "historical_sf_panel": {
+    "toolchain": "leanprover/lean4:v4.30.0",
+    "effort": 10000,
+    "raw_heartbeats": 800000000,
+    "counts": {
+      "search": {
+        "selected_vfa_goals": 53,
+        "solved": 43
+      },
+      "committed": {
+        "selected_vfa_goals": 53,
+        "solved": 34
+      }
+    },
+    "results": "docs/reviews/2026-09-11/suggestions-results.json",
+    "rerun_on_latest_lean": false,
+    "development_selection": true
+  },
+  "noncomment_lines": {
+    "core": 499,
+    "core_with_protocol": 622,
+    "default_import": 1051,
+    "optional_observation_addition": 317
+  },
+  "public_release": false,
+  "final_documentation_check": {
+    "command": [
+      "taskset",
+      "-c",
+      "0",
+      "nice",
+      "-n",
+      "15",
+      "python3",
+      "-c",
+      "import os, subprocess\nos.environ.update(ELAN_TOOLCHAIN='leanprover/lean4:v4.33.1',\n                 ELAN_HOME='/tmp/waterfall-v01-elan-20260912', LEAN_NUM_THREADS='1')\nsubprocess.run(['python3','scripts/check_docs.py'],cwd='WaterfallV01',check=True)\nsubprocess.run(['python3','scripts/build_site.py'],cwd='WaterfallV01',check=True)\n"
+    ],
+    "end_utc": "2026-09-12T11:49:50.413348+00:00",
+    "returncode": 0,
+    "log_sha256": "7a6af3d862e503c423ddf28613bfc25434757646aaad9ccac38fc09f71dd0e89",
+    "output": "Documentation links and 2 README examples pass.\n/tmp/wf-single-policy-development-dl-20260909/project-build/WaterfallV01/dist/site/index.html\n",
+    "readme_sha256": "6df5b76aa2d90a93f6da96cb02c562411d1c3392db8ab086a635c8c62e17d3c6"
+  }
+}

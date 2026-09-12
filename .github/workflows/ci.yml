@@ -7,12 +7,26 @@ permissions:
   contents: read
 jobs:
   check:
+    strategy:
+      fail-fast: false
+      matrix:
+        lean: [v4.30.0, v4.33.1]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       LEAN_NUM_THREADS: 2
     steps:
       - uses: actions/checkout@v4
+      - name: Select Lean version for this check
+        env:
+          TEST_LEAN: ${{ matrix.lean }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          for name in ['lean-toolchain', 'consumer/lean-toolchain']:
+              Path(name).write_text('leanprover/lean4:' + os.environ['TEST_LEAN'] + '\n')
+          PY
       - uses: leanprover/lean-action@v1
         with:
           build: "true"
@@ -20,6 +34,8 @@ jobs:
           use-mathlib-cache: "false"
       - run: python3 scripts/check_docs.py
       - run: python3 scripts/size.py
+      - run: lake env leanchecker Docs.Examples
+      - run: python3 scripts/build_site.py
       - run: lake build
         working-directory: consumer
       - run: lake env leanchecker Consumer

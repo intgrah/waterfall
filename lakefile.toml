@@ -1,5 +1,5 @@
 name = "waterfall"
-version = "0.1.0-rc.1"
+version = "0.1.0"
 description = "Small, configurable proof search for inductive Lean goals"
 keywords = ["automation", "induction", "tactic", "software-verification"]
 license = "Apache-2.0"
@@ -18,4 +18,4 @@ name = "WaterfallTests"
 roots = ["Tests.Core", "Tests.Canonical", "Tests.Observe", "Tests.ContextPolicy",
   "Tests.DefaultPolicy", "Tests.Exhaustion", "Tests.SearchPolicy", "Tests.Schedule",
   "Tests.TrialPolicy", "Tests.Options", "Tests.Import", "Tests.Capabilities",
-  "Tests.Parallel", "Tests.ParallelAsync", "Tests.ReviewFixes", "Tests.Suggestions", "Tests.ForeignTrace", "Tests.Coexistence", "Docs.Guide"]
+  "Tests.Parallel", "Tests.ParallelAsync", "Tests.ReviewFixes", "Tests.Suggestions", "Tests.ForeignTrace", "Tests.Coexistence", "Docs.Guide", "Docs.Examples"]
