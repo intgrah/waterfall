@@ -3,22 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Runnable Lean examples of expression optimization, insertion sort and tree traversal, adapted from Software Foundations.">
-  <title>Software Foundations examples · Waterfall</title>
+  <title>Examples · Waterfall</title>
+  <meta name="description" content="Waterfall, an induction tactic for Lean. Proof examples, search behavior and configuration.">
   <link rel="stylesheet" href="style.css">
-  
 </head>
 <body>
 <header><a class="wordmark" href="./">Waterfall</a><nav aria-label="Main"><a href="./">Overview</a><a href="examples.html" aria-current="page">Examples</a><a href="guide.html">Guide</a><a href="reference.html">Reference</a></nav></header>
-<main class="prose">
-<div class="hero"><span class="eyebrow">Software Foundations in Lean</span><h1>Software Foundations examples</h1><p class="lede">Lean proofs of expression optimization, insertion sort and tree traversal, adapted from Software Foundations.</p></div>
-<p>These adaptations import only Waterfall and prove all their helper theorems. The <a href="../Docs/Examples.lean">complete source file</a> is checked by <code>lake test</code> on Lean 4.33.1 and 4.30.0. After <code>lake build</code>, <code>lake env lean Docs/Examples.lean</code> checks the file directly.</p>
+<main>
+<h1>Examples from Software Foundations</h1>
+<p>These three adaptations are in <a href="../Docs/Examples.lean">Docs/Examples.lean</a>. All definitions and helper proofs are included. The file imports only Waterfall and is checked by <code>lake test</code> on Lean 4.33.1 and 4.30.0.</p>
+<p>After <code>lake build</code>, the file can also be checked with <code>lake env lean Docs/Examples.lean</code>.</p>
 <nav aria-label="Examples"><a href="#optimizer">Optimization</a><a href="#sorting">Insertion sort</a><a href="#traversal">Tree traversal</a></nav>
 <section id="optimizer"><span class="eyebrow">Logical Foundations / Imp</span><h2>Expression optimization</h2>
-<p>An expression language has numerals, addition, natural subtraction and multiplication. The optimizer removes <code>0 + e</code> anywhere in an expression. Its correctness theorem says that evaluation before and after optimization agrees:</p>
+<p>The optimizer removes <code>0 + e</code> from arithmetic expressions. The theorem says this leaves their values unchanged:</p>
 <pre><code>theorem optimize_sound (a : AExp) : eval (optimize a) = eval a := by
   waterfall [eval, optimize]</code></pre>
-<p>The special case for addition requires case analysis within the induction. Waterfall chooses those steps using the goal and the supplied definitions.</p>
+<p>In the addition case, the proof has to distinguish a left operand of <code>num 0</code> from other expressions. Waterfall does that case analysis inside the induction.</p>
 <details><summary>Complete optimizer example</summary><pre><code>import Waterfall
 
 namespace Waterfall.Examples.Optimization
@@ -51,21 +51,21 @@ theorem optimize_sound (a : AExp) : eval (optimize a) = eval a := by
 end Waterfall.Examples.Optimization</code></pre></details>
 <p class="code-caption">Adapted from <a href="https://softwarefoundations.cis.upenn.edu/lf-current/Imp.html">Software Foundations: Imp</a>.</p></section>
 <section id="sorting"><span class="eyebrow">Verified Functional Algorithms / Sort</span><h2>Insertion sort</h2>
-<p>The inductive <code>Sorted</code> predicate describes an empty list, a singleton, or two ordered elements followed by a sorted suffix. Insertion’s comparison branches must preserve that evidence:</p>
+<p><code>Sorted</code> is an inductive predicate with constructors for the empty list, a singleton, and an ordered pair followed by a sorted suffix. Inserting an element preserves it:</p>
 <pre><code>theorem insert_sorted (x : Nat) (xs : List Nat) :
     Sorted xs → Sorted (insert x xs) := by
   waterfall (effort := 3000) [insert]</code></pre>
-<p>This proof uses effort 3,000, above the default 1,000. The outer sort can then use the lemma directly:</p>
+<p>Here we use effort 3,000. The proof of sortedness for the whole sort uses this lemma:</p>
 <pre><code>theorem sort_sorted (xs : List Nat) : Sorted (sort xs) := by
   waterfall [sort, insert_sorted]</code></pre>
-<p>Sortedness alone is not enough: returning an empty list would satisfy it. Waterfall also proves insertion preserves the elements, using supplied permutation lemmas. A short explicit induction composes those results for the full sort:</p>
+<p>We also need a permutation proof, since sortedness alone would allow a function that always returns <code>[]</code>. Waterfall proves the insertion lemma <code>insert_perm</code>. It did not close the composition step at the budgets we tested, so we wrote that induction explicitly:</p>
 <pre><code>theorem sort_perm (xs : List Nat) : List.Perm xs (sort xs) := by
   -- Keep this short permutation composition explicit; Waterfall proves the
   -- insertion and sortedness obligations above, including the case analysis.
   induction xs with
   | nil =&gt; exact List.Perm.nil
   | cons x xs ih =&gt; exact (List.Perm.cons x ih).trans (insert_perm x (sort xs))</code></pre>
-<p>The final theorem combines the permutation and sortedness lemmas:</p>
+<p>With both lemmas available, the final theorem is:</p>
 <pre><code>theorem sort_correct (xs : List Nat) :
     List.Perm xs (sort xs) ∧ Sorted (sort xs) := by
   waterfall [sort_perm, sort_sorted]</code></pre>
@@ -114,15 +114,15 @@ theorem sort_correct (xs : List Nat) :
 end Waterfall.Examples.Sorting</code></pre></details>
 <p class="code-caption">Adapted from <a href="https://softwarefoundations.cis.upenn.edu/vfa-current/Sort.html">Software Foundations: Sort</a>.</p></section>
 <section id="traversal"><span class="eyebrow">Verified Functional Algorithms / SearchTree</span><h2>Tree traversal</h2>
-<p>The simple in-order traversal uses list append. Its accumulator version avoids intermediate appends, passing a changed accumulator in recursive calls. The helper must account for every accumulator:</p>
+<p><code>fastElements</code> avoids the intermediate appends in <code>elements</code>. Its recursive calls use different accumulators, so the helper lemma quantifies over all of them:</p>
 <pre><code>theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
     fastElements t acc = elements t ++ acc := by
   waterfall [elements, fastElements, List.append_assoc]</code></pre>
-<p>Waterfall finds an induction proof that covers those recursive calls; append associativity connects the two implementations. The correctness theorem then specializes the helper to an empty accumulator:</p>
+<p>Append associativity is the helper fact needed by the induction. Setting the accumulator to <code>[]</code> gives the result we wanted:</p>
 <pre><code>theorem fast_elements_correct (t : Tree V) :
     fastElements t [] = elements t := by
   waterfall [fast_elements_helper]</code></pre>
-<p>This equivalence applies to every tree. It needs no search-tree ordering invariant.</p>
+<p>The theorem holds for all trees, regardless of their key order.</p>
 <details><summary>Complete tree-traversal example</summary><pre><code>import Waterfall
 
 namespace Waterfall.Examples.TreeTraversal
@@ -154,8 +154,8 @@ theorem fast_elements_correct (t : Tree V) :
 
 end Waterfall.Examples.TreeTraversal</code></pre></details>
 <p class="code-caption">Adapted from <a href="https://softwarefoundations.cis.upenn.edu/vfa-current/SearchTree.html">Software Foundations: SearchTree</a>.</p></section>
-<section><h2>Evaluation scope</h2><p>These examples demonstrate proof structure; they are not an independently selected coverage benchmark. The separate VFA development panel measured 43/53 search successes and 34/53 committed successes on Lean 4.30.0, with larger budgets and preceding helper facts supplied as assumptions.</p><p><a href="./#results">Results and evaluation scope</a> · <a href="guide.html#proof-hints">Proof scripts from waterfall?</a></p></section>
+<p>The larger <a href="./#results">VFA experiment</a> uses a different setup, with preceding helper facts supplied as assumptions.</p>
 </main>
-<footer><span>Waterfall 0.1 · Lean 4.33.1</span><span><a href="../LICENSE">Apache-2.0</a> · Private release candidate</span></footer>
+<footer>Waterfall 0.1 · Lean 4.33.1 · <a href="../LICENSE">Apache-2.0</a> · Private preview</footer>
 </body>
 </html>

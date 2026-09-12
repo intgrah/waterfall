@@ -3,27 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Waterfall is a Lean tactic for inductive proofs, with backtracking and committed search. Usage, examples, options and Software Foundations results.">
-  <title>Waterfall — inductive proof search for Lean</title>
+  <title>Induction proofs in Lean · Waterfall</title>
+  <meta name="description" content="Waterfall, an induction tactic for Lean. Proof examples, search behavior and configuration.">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header><a class="wordmark" href="./">Waterfall</a><nav aria-label="Main"><a href="./" aria-current="page">Overview</a><a href="examples.html">Examples</a><a href="guide.html">Guide</a><a href="reference.html">Reference</a></nav></header>
 <main>
-<div class="hero">
-  <h1>Proof search for Lean</h1>
-  <p class="lede">Waterfall is a Lean tactic for inductive proofs. It searches for combinations of simplification, lemma application, case analysis and induction, using Lean to check the resulting proof.</p>
-  <p>Version 0.1 is a private release candidate. It depends only on Lean 4.33.1 and uses the Apache-2.0 license.</p>
-</div>
-<section class="featured" id="tree-proof">
-  <span class="eyebrow">Software Foundations · VFA / SearchTree</span>
-  <h2>Equivalence of two tree traversals</h2>
-  <p>The following theorem, adapted from Software Foundations, relates an in-order traversal using list append to an accumulator implementation:</p>
+<h1>Waterfall</h1>
+<p>Waterfall searches for induction proofs in Lean. It uses <code>simp</code> and <code>grind</code> on subgoals, and backtracks over choices of induction, case analysis and lemma application.</p>
+<p>For example, this theorem from Software Foundations relates two tree traversals:</p>
 <pre><code>theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
     fastElements t acc = elements t ++ acc := by
   waterfall [elements, fastElements, List.append_assoc]</code></pre>
-  <p>The bracketed arguments supply the two definitions and append associativity. Waterfall finds an induction proof that accounts for the changed accumulator in recursive calls.</p>
-  <details><summary>Complete Lean example</summary>
+<p><code>elements</code> builds its result with list append; <code>fastElements</code> carries an accumulator. The recursive calls change the accumulator, so the induction has to account for more than its initial value. Waterfall finds that proof given the two definitions and append associativity.</p>
+<details id="tree-proof"><summary>Definitions and complete proof</summary>
 <pre><code>import Waterfall
 
 inductive Tree (V : Type) where
@@ -42,68 +36,50 @@ def fastElements : Tree V → List (Nat × V) → List (Nat × V)
 theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
     fastElements t acc = elements t ++ acc := by
   waterfall [elements, fastElements, List.append_assoc]</code></pre>
-  </details>
-  <p class="code-caption">Adapted from VFA. This complete example is checked on Lean 4.33.1 and 4.30.0. <a href="examples.html#traversal">Proof explanation</a></p>
-</section>
-
-<section id="usage">
-  <h2>Usage</h2>
-  <p><code>import Waterfall</code> makes <code>waterfall</code> and <code>waterfall?</code> available. Either tactic can prove a whole theorem or close a remaining goal after manual proof steps. Local hypotheses are used automatically; definitions and helper lemmas can be supplied in brackets.</p>
-  <p><code>waterfall?</code> also produces a checked “Try this” editor hint. Accepting the hint replaces the invocation with ordinary Lean proof commands. Those commands may still use <code>simp_all</code> or <code>grind</code> for individual goals.</p>
-  <p>The <a href="examples.html">Software Foundations examples</a> contain three complete developments:</p>
-  <ul>
-    <li><a href="examples.html#optimizer">Expression optimization (LF / Imp)</a>: removing <code>0 + e</code> preserves evaluation.</li>
-    <li><a href="examples.html#sorting">Insertion sort (VFA / Sort)</a>: insertion preserves sortedness and permutation. The full sorting proof combines Waterfall with a short explicit permutation argument.</li>
-    <li><a href="examples.html#traversal">Tree traversal (VFA / SearchTree)</a>: the accumulator implementation returns the same elements as the simple traversal.</li>
-  </ul>
-  <p>Each development proves its own helper lemmas and imports only Waterfall. The <a href="../Docs/Examples.lean">Lean source</a> is part of the test suite.</p>
-</section>
+</details>
+<p id="usage"><code>import Waterfall</code> makes the tactic available. Definitions and lemmas go in brackets; local hypotheses are used automatically. <code>waterfall?</code> produces a checked proof script that can replace the tactic call through Lean’s “Try this” hint.</p>
 <section id="how-it-works">
-  <h2>How it works</h2>
-  <p>Waterfall proposes proof steps from the goal, local context and available lemmas. These include applying a theorem backward, instantiating a hypothesis, splitting a case, and inducting on data or a recursive call. Simplification, arithmetic and <code>grind</code> close simpler goals. Candidates are generated as the search reaches them.</p>
-  <p>The default search follows a candidate through all its resulting obligations. If a later obligation fails, it restores the earlier proof state and tries another candidate. Trials allow progressively deeper proofs and stronger individual operations, subject to a shared effort allowance.</p>
-  <p>Committed mode uses the same proof operations with an ACL2-inspired policy: it accepts local progress, tries ordinary proof steps before induction, and can return to the original conjecture once per trial. It discards alternatives, so it can miss proofs that backtracking finds.</p>
-  <p>Missing helper lemmas, difficult mutual induction and search ordering remain common obstacles. The package does not perform lemma discovery or implement all of ACL2’s reasoning machinery.</p>
-  <p>The <a href="reference.html">reference</a> describes the search interfaces, optional timing and action recording, and proof-plan replay.</p>
+  <h2>Search and commitment</h2>
+  <p>The project draws on ACL2’s approach to automation: simplification and lemma use prepare a conjecture for induction, and the resulting subgoals go through the same process.</p>
+  <p>Waterfall’s default mode backtracks. If an induction closes two cases but gets stuck on the third, search can undo the induction and try something else. Each trial limits proof depth and the work allowed for individual operations; later trials raise those limits.</p>
+  <p><code>(mode := .committed)</code> follows a policy closer to ACL2. It commits to a step once that step makes progress, even if a later subgoal fails. It postpones induction until other steps fail, and can return to the original conjecture once per trial.</p>
+  <p>The two modes share the proof engine. Search policy and <a href="reference.html">timing and recording</a> are separate from the proof operations. Lemma discovery remains outside this package.</p>
 </section>
 <section id="configure">
-  <h2>Main options</h2>
-  <p>Configuration items precede the optional list of definitions and lemmas. For example:</p>
-  <pre><code>waterfall (mode := .committed) (effort := 3000)
+  <h2>Options</h2>
+<pre><code>waterfall (mode := .committed) (effort := 3000)
   [elements, fastElements, List.append_assoc]</code></pre>
   <div class="table-scroll"><table>
-    <thead><tr><th scope="col">Option</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead>
+    <thead><tr><th scope="col">Option</th><th scope="col">Default</th><th scope="col">Effect</th></tr></thead>
     <tbody>
-      <tr><th scope="row"><code>mode</code></th><td><code>.search</code></td><td>Backtracking search, or <code>.committed</code> for commitment after local progress.</td></tr>
-      <tr><th scope="row"><code>effort</code></th><td><code>1000</code></td><td>Total attempted-operation allowance, including failed attempts. Larger values also permit deeper plans and stronger operations.</td></tr>
-      <tr><th scope="row"><code>cpus</code></th><td><code>1</code></td><td>Maximum concurrent workers. Workers explore different trials of the same policy and share the total budget.</td></tr>
-      <tr><th scope="row"><code>report</code></th><td><code>false</code></td><td>Whether to print search statistics.</td></tr>
+      <tr><th scope="row"><code>mode</code></th><td><code>.search</code></td><td><code>.committed</code> disables backtracking after local progress.</td></tr>
+      <tr><th scope="row"><code>effort</code></th><td><code>1000</code></td><td>Number of attempts available across the whole search, including failures.</td></tr>
+      <tr><th scope="row"><code>cpus</code></th><td><code>1</code></td><td>Maximum workers running different depth/strength trials. They share the total budget.</td></tr>
+      <tr><th scope="row"><code>report</code></th><td><code>false</code></td><td><code>true</code> prints search statistics.</td></tr>
     </tbody>
   </table></div>
-  <p>Both tactics accept these options. Lean’s enclosing heartbeat and recursion limits still apply. More effort need not make a proof faster, and parallel execution can change which proofs are found within a fixed budget.</p>
-  <p>The <a href="reference.html#options">full option reference</a> also covers per-operation heartbeats, lazy enumeration and deferred applicability checks.</p>
+  <p>A larger <code>effort</code> gives the search more attempts and access to deeper proofs and stronger solvers. It may take longer. Lean’s <code>maxHeartbeats</code> and <code>maxRecDepth</code> limits also apply.</p>
+  <p><code>waterfall?</code> accepts the same options. The <a href="reference.html#options">reference</a> includes controls for per-step budgets and candidate enumeration.</p>
 </section>
 <section id="results">
-  <span class="eyebrow">Measured results</span>
-  <h2>Software Foundations results</h2>
-  <div class="split">
-    <div><p>Search proved 43 of 53 selected goals from Verified Functional Algorithms. These include selection-sort permutation, merge-sort sortedness, red-black-tree lookup preservation and binomial-heap validity.</p><p>The panel spans Selection, Merge, SearchTree, Queue, Redblack and Binom. Every successful <code>waterfall?</code> replacement was compiled independently.</p></div>
-    <div class="results"><table><caption>Goals proved in the VFA panel</caption><thead><tr><th scope="col">Mode</th><th scope="col">Solved</th></tr></thead><tbody><tr><th scope="row">Search</th><td><strong>43<span> / 53</span></strong></td></tr><tr><th scope="row">Committed</th><td><strong>34<span> / 53</span></strong></td></tr></tbody></table></div>
-  </div>
-  <p class="note">Measured on <strong>Lean 4.30.0</strong> at <strong>effort 10,000</strong> with an <strong>800M raw heartbeat</strong> allowance and preceding helper facts supplied as assumptions. Default effort is 1,000. This is a development panel, not whole-book coverage or a held-out evaluation; these counts have not been rerun on Lean 4.33.1.</p>
-  <p><a href="../docs/reviews/2026-09-11/SUGGESTIONS.md">Evaluation protocol</a> · <a href="../docs/reviews/2026-09-11/suggestions-results.csv">Per-goal results (CSV)</a></p>
+  <h2>Software Foundations</h2>
+  <p>We tested 53 goals from six chapters of Verified Functional Algorithms:</p>
+  <table class="scores"><thead><tr><th scope="col">Mode</th><th scope="col">Goals proved</th></tr></thead><tbody><tr><th scope="row">Search</th><td>43 / 53</td></tr><tr><th scope="row">Committed</th><td>34 / 53</td></tr></tbody></table>
+  <p>Successes include selection-sort permutation, merge-sort sortedness, red-black-tree lookup preservation and binomial-heap validity. Every successful <code>waterfall?</code> replacement was compiled separately.</p>
+  <p>This run used Lean 4.30.0, effort 10,000 and 800M raw heartbeats. The goals were selected during development, with preceding helper facts supplied as assumptions. The counts describe that test set, not coverage of the books or performance on held-out goals. We have not repeated this run on Lean 4.33.1.</p>
+  <p>The <a href="../docs/reviews/2026-09-11/SUGGESTIONS.md">test report</a> and <a href="../docs/reviews/2026-09-11/suggestions-results.csv">per-goal results</a> give the details.</p>
+  <p>The <a href="examples.html">examples</a> are smaller proofs from LF and VFA: an expression optimizer, insertion sort and the tree traversal above. They import only Waterfall and prove their own helper lemmas. The sorting example also shows a step that we still prove by hand.</p>
 </section>
-
 <section id="install">
-  <h2>Installation</h2>
-  <p>The <code>0.1.0</code> Lake package is in the private <a href="https://github.com/samth/Waterfall">samth/Waterfall</a> repository. Public distribution and Reservoir registration are pending. A project with the Waterfall checkout in a sibling directory can use this dependency in <code>lakefile.toml</code>:</p>
-  <pre><code>[[require]]
+  <h2>Lake package</h2>
+  <p>Version 0.1.0 is in the private <a href="https://github.com/samth/Waterfall">samth/Waterfall</a> repository; public release and Reservoir registration are pending. With the checkout next to a Lean project, its <code>lakefile.toml</code> dependency is:</p>
+<pre><code>[[require]]
 name = "waterfall"
 path = "../Waterfall"</code></pre>
-  <p>The two projects need the same <code>lean-toolchain</code>. After <code>lake update</code>, the package is available through <code>import Waterfall</code>. The release targets Lean 4.33.1; compatibility is also tested on Lean 4.30.0.</p>
-  <p><a href="guide.html">User guide</a> · <a href="../Docs/Guide.lean">Compiled Lean tutorial</a></p>
+  <p>Both projects need the same <code>lean-toolchain</code>. <code>lake update</code> resolves the dependency. Waterfall has no dependencies beyond Lean; version 0.1 targets Lean 4.33.1 and is also tested on 4.30.0.</p>
+  <p><a href="guide.html">User guide</a> · <a href="../Docs/Guide.lean">Lean tutorial</a></p>
 </section>
 </main>
-<footer><span>Waterfall 0.1 · Lean 4.33.1</span><span><a href="../LICENSE">Apache-2.0</a> · Private release candidate</span></footer>
+<footer>Waterfall 0.1 · Lean 4.33.1 · <a href="../LICENSE">Apache-2.0</a> · Private preview</footer>
 </body>
 </html>
