@@ -72,12 +72,19 @@ recording, and exact-plan replay through middleware. [Tactic.lean](../Waterfall/
 parses the public options. The proof engine owns rollback and acceptance; IO
 counters and other external callback effects cannot be rolled back.
 
+[Suggestions.lean](../Waterfall/Suggestions.lean) records only the accepted path,
+renders ordinary proof commands, and checks the printed text from the original
+checkpoint. It uses `case'` to select a later sibling while preserving the other
+goals' order. If command rendering fails, it prints the completed proof term,
+inlining solver-generated auxiliary declarations. Only a checked replacement is
+offered through Lean's editor hint. Each parallel worker has its own recorder;
+only the winning worker's hint is retained.
+
 ## Size and refactoring limits
 
-The engine remains 499 noncomment lines after the three review fixes. Including
-the complete protocol gives 620; the default import is 845. Before these fixes
-the corresponding totals were 499, 619, and 835. The increase is the explicit
-progress contract and interrupt-safe worker accounting, outside the proof engine.
-Counts include all local helpers and are reproduced by `python3 scripts/size.py`;
-moving shared data declarations is not counted as an overall reduction. No new
-search policy, inference family, or dependency was introduced.
+The engine remains 499 noncomment lines. Including the complete protocol gives
+621; the default import is 1,020, including the 170-line suggestion frontend.
+Optional observation adds 316 lines. Counts include all local helpers and are
+reproduced by `python3 scripts/size.py`; moving shared declarations is not counted
+as an overall reduction. The hint frontend adds no inference family, search
+policy, or external dependency.

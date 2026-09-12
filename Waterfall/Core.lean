@@ -336,7 +336,7 @@ private def followRecursion (g : MVarId) (rules : Array (TSyntax `term)) : Tacti
   for call in dataCalls ++ propCalls do
     for casesOnly in [false, true] do
       out := out.push {
-        cost := 1,
+        cost := 1, subject := some call,
         induction := if casesOnly then .none else .functional,
         label := if casesOnly then "function cases" else "function induction", run := g.withContext do
           let mut others := #[]

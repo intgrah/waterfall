@@ -89,6 +89,10 @@ structure Move where
   induction : InductionKind := .none
   /-- Semantic metadata for scheduling, independent of display labels. -/
   major : Option FVarId := none
+  /-- Optional subject for inspecting or explaining an operation. Like `major`,
+  its free variables belong to the operation's input checkpoint. Search policies
+  need not use it; rendering must not recover it by rerunning the inference. -/
+  subject : Option Expr := none
   role : Name := .anonymous
   /-- Optional applicability probe. It runs under temporary state and consumes
   ambient resources, but a rejected candidate is not a dispatched attempt. -/

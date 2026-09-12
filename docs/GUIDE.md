@@ -54,11 +54,21 @@ slice is 20,000,000 raw heartbeats. This does not grant an unlimited parent budg
 Use an enclosing `set_option maxHeartbeats ... in` when a proof genuinely needs
 more total work. `maxRecDepth` may separately limit a long search.
 
-`waterfall?` and `(report := true)` print attempts, visited nodes, successful
-trial depth/strength, raw heartbeat use and retained operation labels. Those
-labels are diagnostics, not a script. For internal wall-clock measurements and
-replayable plans, import `Waterfall.Observe` and use its `capture` and `replay`
-interfaces.
+`waterfall?` offers a “Try this” hint and editor code action. Applying it replaces
+the complete invocation, including its options and rule list, with ordinary
+Lean proof commands. It works with both modes and with `cpus`. The replacement
+contains no call to Waterfall or its plan interpreter.
+
+The frontend reconstructs the retained path and checks the printed text from the
+original goal. Operations it cannot render as tactics fall back to an explicit
+proof term, which can be longer. Reconstruction and checking consume additional
+time and ambient heartbeats; ordinary `waterfall` does neither.
+
+`(report := true)` prints attempts, visited nodes, successful trial depth/strength,
+raw heartbeat use and retained operation labels. For internal wall-clock
+measurements and replayable plans, import `Waterfall.Observe` and use its
+`capture` and `replay` interfaces. `trace.Waterfall.suggestions` explains when
+command reconstruction falls back to a proof term.
 
 ## Enumeration and custom policies
 

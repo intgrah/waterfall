@@ -28,6 +28,15 @@ example (xs ys zs : List Nat) : append (append xs ys) zs = append xs (append ys 
   waterfall (effort := 3000) [append]
 
 /-!
+## Replacing automation with proof commands
+
+Click the “Try this” hint from `waterfall?` to replace it with a checked script.
+The same configuration and rule arguments are accepted in either mode.
+-/
+example (xs : List Nat) : append xs [] = xs := by
+  waterfall? [append]
+
+/-!
 ## Configuration
 
 `effort` is the main knob. It funds more attempted operations, deeper structural

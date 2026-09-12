@@ -10,7 +10,8 @@ function updateOptions() {
   if (effort !== "1000") opts.push(`(effort := ${effort})`);
   if (!document.querySelector("#lazy").checked) opts.push("(lazy := false)");
   if (document.querySelector("#defer").checked) opts.push("(deferChecks := true)");
-  const tactic = document.querySelector("#report").checked ? "waterfall?" : "waterfall";
+  if (document.querySelector("#report").checked) opts.push("(report := true)");
+  const tactic = document.querySelector("#hint").checked ? "waterfall?" : "waterfall";
   document.querySelector("#snippet").textContent = tactic +
     (opts.length ? "\n  " + opts.join("\n  ") : "") + "\n  [myDefinition, helperLemma]";
   document.querySelector("#mode-note").textContent = mode === "search"

@@ -1,5 +1,6 @@
 import Waterfall.Parallel
 import Waterfall.Committed
+import Waterfall.Suggestions
 
 /-! # The `waterfall` tactic
 
@@ -47,8 +48,8 @@ Every successful proof is checked by Lean. Failure restores the input proof stat
 -/
 syntax (name := waterfallTac) "waterfall" optConfig (" [" term,* "]")? : tactic
 
-/-- Like `waterfall`, but report attempts, nodes, depth, strength and the retained
-operation labels. This is a diagnostic summary, not a standalone proof script. -/
+/-- Like `waterfall`, with a checked editor suggestion containing ordinary Lean
+proof commands. Use `(report := true)` to also print search statistics. -/
 syntax (name := waterfallReportTac) "waterfall?" optConfig (" [" term,* "]")? : tactic
 
 private def execute (options : Options) (rules : Array (TSyntax `term)) : TacticM Unit := do
@@ -59,6 +60,9 @@ elab_rules : tactic
     execute (← elabOptions cfg) (rules.map (·.getElems) |>.getD #[])
   | `(tactic| waterfall? $cfg:optConfig $[[$rules,*]]?) => do
     let options ← elabOptions cfg
-    execute { options with report := true } (rules.map (·.getElems) |>.getD #[])
+    let rules := rules.map (·.getElems) |>.getD #[]
+    let ref ← getRef
+    discard <| Parallel.run options.cpus options.toConfig rules
+      (Suggestions.run ref rules options.mode.hooks)
 
 end Waterfall

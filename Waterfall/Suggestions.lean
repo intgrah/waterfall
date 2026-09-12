@@ -1,0 +1,217 @@
+import Waterfall.Core
+
+/-!
+Compile a retained proof path into ordinary Lean tactics. This module is a
+frontend: it neither adds proof operations nor changes the engine's scheduling.
+
+A command recipe is only a proposal. The entire printed replacement is parsed
+and elaborated from the original checkpoint, with recovery disabled, before it
+can become a suggestion. Unsupported operations or different elaborator naming
+fall back to the completed proof term. Neither route calls Waterfall again.
+-/
+
+open Lean Meta Elab Tactic Parser.Tactic
+namespace Waterfall.Suggestions
+
+initialize registerTraceClass `Waterfall.suggestions
+
+/-- Only accepted steps are recorded, so failed alternatives never enter a hint.
+Allocate this recorder inside each parallel worker, just like other middleware. -/
+abbrev Path := Array (Selection × Tactic.SavedState)
+
+/-- A checked replacement and whether it required the proof-term fallback. -/
+structure Script where
+  tactic : TSyntax `tactic
+  text : String
+  usedTerm : Bool
+
+private def sequence (commands : Array (TSyntax `tactic)) : TacticM (TSyntax `tactic) :=
+  `(tactic| ($commands:tactic*))
+
+private def simpCommand (rules : Array (TSyntax `term)) (strength : Nat) :
+    TacticM (TSyntax `tactic) := do
+  let rs ← rules.mapM fun t => `(simpLemma| $t:term)
+  if strength == 1 then return ← `(tactic| simp_all [$rs,*])
+  let steps := quote (Simp.defaultMaxSteps * strength)
+  let depth := quote (({} : Simp.Config).maxDischargeDepth * strength)
+  `(tactic| simp_all (config := {maxSteps := $steps, maxDischargeDepth := $depth}) [$rs,*])
+
+private def grindCommand (rules : Array (TSyntax `term)) (strength : Nat)
+    (constructors : Bool) : TacticM (TSyntax `tactic) := do
+  let mut rules := rules
+  if constructors then
+    let extra ← forallTelescopeReducing (← (← getMainGoal).getType) fun _ target => do
+      let .const name _ := target.getAppFn | throwError "no target predicate"
+      let info ← getConstInfoInduct name
+      return info.ctors.toArray.map fun n => (⟨mkIdent n⟩ : TSyntax `term)
+    rules := rules ++ extra
+  let rs ← rules.mapM fun t => `(grindParam| $t:term)
+  if strength == 1 then return ← `(tactic| grind +lax [$rs,*])
+  let c : Grind.Config := {}
+  let splits := quote (c.splits * strength)
+  let gen := quote (c.gen * strength)
+  let instances := quote (c.instances * strength)
+  let ematch := quote (c.ematch * strength)
+  let ringSteps := quote (c.ringSteps * strength)
+  let acSteps := quote (c.acSteps * strength)
+  let canon := quote (c.canonHeartbeats * strength)
+  `(tactic| grind (config := {lax := true, splits := $splits, gen := $gen,
+                              instances := $instances, ematch := $ematch, ringSteps := $ringSteps,
+                              acSteps := $acSteps, canonHeartbeats := $canon}) [$rs,*])
+
+/-- The subject is semantic metadata, not elaborator syntax containing named
+holes. Generalized variables are printed before Lean's ordinary elimination
+command. No inference is rerun merely to recover what it acted upon. -/
+private def functionalCommand (move : Move) : TacticM (TSyntax `tactic) := do
+  let some call := move.subject | throwError "missing functional elimination subject"
+  let target ← PrettyPrinter.delab call
+  if move.induction == .none then return ← `(tactic| fun_cases $target)
+  let mut others : Array (TSyntax `ident) := #[]
+  for d in (← getLCtx) do
+    unless d.isImplementationDetail || call.containsFVar d.fvarId ||
+        (← isProp d.type) || (← isType (mkFVar d.fvarId)) do
+      others := others.push (mkIdent d.userName)
+  let tactic ← `(tactic| fun_induction $target)
+  if others.isEmpty then return tactic
+  `(tactic| (revert $others*; $tactic))
+
+/-- Render the common proof vocabulary. Display labels only select proposed
+recipes; they are never trusted as replay identifiers or evidence of correctness.
+The final independent elaboration is mandatory even for an all-tactic script. -/
+private def command (step : Selection) (rules : Array (TSyntax `term)) :
+    TacticM (TSyntax `tactic) := withMainContext do
+  let g ← getMainGoal
+  let rules ← prepareRules g rules
+  let moves ← movesFor g rules step.strength step.remaining step.action.group
+  let some move := moves[step.action.index]? | throwError "unknown proof operation"
+  if step.action.group == .functions then return ← functionalCommand move
+  match step.label with
+  | "assumption/rfl" => `(tactic| first | assumption | rfl | contradiction)
+  | "omega" => `(tactic| omega)
+  | "simp" => do
+    let simp ← simpCommand rules step.strength
+    -- Search checks a leaf with its siblings outside the tactic goal list.
+    -- Preserve that scope: bare `done` would also inspect pending siblings.
+    `(tactic| focus ($simp; done))
+  | "normalize" => simpCommand rules step.strength
+  | "grind" => grindCommand rules step.strength false
+  | "grind constructors" => grindCommand rules step.strength true
+  | "intro" => `(tactic| intro _)
+  | "introduce binders" => `(tactic| intros)
+  | "function extensionality" => `(tactic| (apply funext; intros))
+  | "split target" => `(tactic| split)
+  | _ =>
+    let some major := move.major | throwError "operation requires proof-term rendering"
+    let target : TSyntax `term := ⟨mkIdent (← major.getDecl).userName⟩
+    if step.induction == .none then
+      if step.label.endsWith " registered" then
+        `(tactic| cases $target:term)
+      else
+        `(tactic| set_option tactic.customEliminators false in cases $target:term)
+    else
+      if step.label.endsWith "abstract indices" then
+        throwError "indexed induction requires proof-term rendering"
+      let induction ← `(tactic| induction $target:term)
+      if !step.label.endsWith " generalized" then return induction
+      let majorType ← inferType (mkFVar major)
+      let mut others : Array (TSyntax `ident) := #[]
+      for d in (← getLCtx) do
+        unless d.isImplementationDetail || d.fvarId == major ||
+            (← isProp d.type) || (← isType (mkFVar d.fvarId)) || majorType.containsFVar d.fvarId do
+          others := others.push (mkIdent d.userName)
+      `(tactic| (revert $others*; $induction <;> intros))
+
+/-- Reparse the displayed text, so validation checks exactly what the editor
+will insert, rather than syntax carrying hidden elaborator references. -/
+private def checkText (initial : Tactic.SavedState) (roots : List MVarId)
+    (tactic : TSyntax `tactic) (usedTerm : Bool) : TacticM Script := do
+  let raw := if usedTerm then tactic.raw else tactic.raw.rewriteBottomUp fun stx => match stx with
+    | .ident info raw name _ => .ident info raw name.eraseMacroScopes []
+    | other => other
+  let text := (← PrettyPrinter.ppTactic ⟨raw⟩).pretty
+  let stx ← match Parser.runParserCategory (← getEnv) `tactic text with
+    | .ok stx => pure stx
+    | .error error => throwError "could not parse the printed proof: {error}\n{text}"
+  initial.restore true
+  Term.withoutErrToSorry <| withoutRecover <| evalTactic stx
+  checkComplete roots
+  unless (← getUnsolvedGoals).isEmpty do throwError "replacement left obligations"
+  return ⟨⟨stx⟩, text, usedTerm⟩
+
+/-- Leaf solvers may create private auxiliary declarations. A pasted proof
+cannot refer to declarations that existed only after the search. Inline those
+new constants, retaining existing named lemmas from the original environment. -/
+private partial def inlineAuxiliaries (original : Environment) (proof : Expr) : MetaM Expr :=
+  withIncRecDepth do
+    Core.checkSystem "waterfall proof rendering"
+    let mut result := proof
+    for name in proof.getUsedConstants do
+      if original.contains name then continue
+      let info ← getConstInfo name
+      let some value := info.value? (allowOpaque := true)
+        | throwError "proof uses an unavailable auxiliary declaration {name}"
+      result := result.replace fun expr => match expr with
+        | .const n levels => if n == name then some (value.instantiateLevelParams info.levelParams levels) else none
+        | _ => none
+    if result == proof then return result.headBeta
+    inlineAuxiliaries original result.headBeta
+
+/-- Produce a checked standalone script, restoring the winning proof afterward.
+The saved final expressions are fully instantiated before restoring the input:
+no worker-local metavariable or elaborator hole may escape into the suggestion. -/
+def compile (initial : Tactic.SavedState) (roots : List MVarId)
+    (path : Path) (rules : Array (TSyntax `term)) : TacticM Script := do
+  let winning ← Tactic.saveState
+  let proofs ← roots.mapM fun g => instantiateMVars (mkMVar g)
+  try
+    tryCatch (do
+      let mut commands := #[]
+      for (step, saved) in path.reverse do
+        saved.restore true
+        let some g := step.agenda[step.focus]? | throwError "missing recorded goal"
+        setGoals [g]
+        let tag ← g.getTag
+        -- case' puts the selected goal's children before the other siblings,
+        -- exactly as Space.expand does. A cyclic rotation would reorder them.
+        evalTactic (← `(tactic| expose_names))
+        let tac ← command step rules
+        if step.focus == 0 then
+          commands := commands.push (← `(tactic| expose_names))
+          commands := commands.push tac
+        else
+          if tag.isAnonymous then throwError "unnamed non-head goal"
+          let tagIdent ← `(binderIdent| $(mkIdent tag):ident)
+          let caseTag ← `(Lean.Parser.Tactic.caseArg| $tagIdent:binderIdent)
+          commands := commands.push (← `(tactic| case' $caseTag => (expose_names; $tac)))
+      winning.restore true
+      return ← checkText initial roots (← sequence commands) false
+    ) (fun ex => do
+      trace[Waterfall.suggestions] "command rendering failed: {ex.toMessageData}"
+      winning.restore true
+      let original ← withoutModifyingState do
+        initial.restore true
+        getEnv
+      let mut commands := #[← `(tactic| expose_names)]
+      for (g, proof) in roots.zip proofs do
+        let term ← g.withContext <| withExposedNames do
+          PrettyPrinter.delab (← inlineAuxiliaries original proof)
+        commands := commands.push (← `(tactic| exact $term))
+      return ← checkText initial roots (← sequence commands) true)
+  finally
+    winning.restore true
+
+/-- Install the standard Lean editor hint after checking its literal replacement.
+The span is the whole invocation, including configuration and rule arguments. -/
+def run (ref : Syntax) (rules : Array (TSyntax `term))
+    (hooks : Hooks) (use : Hooks → TacticM Stats) : TacticM Stats := do
+  let initial ← Tactic.saveState
+  let roots ← getUnsolvedGoals
+  let path ← IO.mkRef (#[] : Path)
+  let stats ← use { hooks with accepted := fun step saved => do
+    hooks.accepted step saved
+    path.modify (·.push (step, saved)) }
+  let script ← Term.withoutTacticIncrementality true <| compile initial roots (← path.get) rules
+  Meta.Tactic.TryThis.addSuggestion ref script.tactic (origSpan? := ref)
+  return stats
+
+end Waterfall.Suggestions

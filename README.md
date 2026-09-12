@@ -61,7 +61,8 @@ finds. Both use the same inference operations.
 
 `effort` is the main knob: more effort permits more attempts, deeper plans and
 stronger operations. Lean's enclosing resource limits still apply. Use
-`waterfall?` for a diagnostic summary; it does not emit a standalone proof script.
+`waterfall?` for a checked “Try this” editor hint that replaces the invocation
+with ordinary Lean proof commands. Use `(report := true)` for search statistics.
 Imported definitions and helpful lemmas can be supplied in brackets. Local
 hypotheses are used automatically.
 
@@ -73,7 +74,7 @@ hypotheses are used automatically.
 | `attemptHeartbeats` | `20000000` | Base raw heartbeat slice per operation; strength scales it |
 | `lazy` | `true` | Enumerate batches only when reached |
 | `deferChecks` | `false` | Delay candidate applicability probes |
-| `report` | `false` | Print search statistics; enabled by `waterfall?` |
+| `report` | `false` | Print search statistics |
 
 See the [compiled Lean tutorial](Docs/Guide.lean), [user guide](docs/GUIDE.md),
 and [API reference](docs/API.md). For a guided source review, read the
@@ -109,8 +110,8 @@ python3 scripts/build_site.py
 ```
 
 The inference engine has 499 noncomment lines. Including its protocol gives
-620; the complete default import, including both configured modes and the tactic
-interface and parallel scheduler, is 845. Optional observation adds 316 lines. These counts include
+621; the complete default import, including both configured modes and the tactic
+interface, parallel scheduler and proof hints, is 1,020. Optional observation adds 316 lines. These counts include
 local helpers; the package does not claim a sub-500-line complete import.
 
 The [independent adversarial review](docs/reviews/2026-09-11/README.md)

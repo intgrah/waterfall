@@ -11,6 +11,7 @@ is a compiled tutorial. The library exports the following small interfaces.
 | `Waterfall.Choices` | Generic lazy selection, filtering, collection and commitment |
 | `Waterfall.Parallel` | Isolated concurrent trials, shared work accounting and cancellation |
 | `Waterfall.Committed` | ACL2-inspired callbacks over the shared engine |
+| `Waterfall.Suggestions` | Checked standalone scripts and editor hints from retained paths |
 | `Waterfall.Observe` | Optional timing, control middleware, action recording and replay |
 | `Waterfall.Canonical` | Optional canonical goal encoding for replay checks |
 
@@ -31,6 +32,14 @@ It adds no proof-search algorithm.
 runs in `TacticM` and returns `Stats` after closing all original goals. Failure
 restores Lean's original proof state. Effort and external observer effects are
 not rolled back. `Stats.choices` contains retained labels in reverse proof order.
+
+`waterfall?` installs `Suggestions.run` inside each worker. It records only
+accepted steps and gives the winning proof a checked editor replacement.
+`Suggestions.compile` accepts the input checkpoint, original goals, retained
+path and rules; it returns `Script` (`tactic`, `text`, `usedTerm`) while restoring
+the completed proof. It reparses the printed text and requires all original
+obligations to close with error recovery disabled. The inference engine and its
+recording interface are unchanged.
 
 ## Search and checkpoints
 
