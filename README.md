@@ -114,6 +114,9 @@ The inference engine has 499 noncomment lines. Including its protocol gives
 interface, parallel scheduler and proof hints, is 1,051. Optional observation adds 316 lines. These counts include
 local helpers; the package does not claim a sub-500-line complete import.
 
+[Proof-hint validation on all 111 goals](docs/reviews/2026-09-11/SUGGESTIONS.md)
+includes every emitted replacement and its individual proof timing.
+
 The [independent adversarial review](docs/reviews/2026-09-11/README.md)
 records three reproduced issues: cancelled-worker heartbeat accounting,
 committed induction's sibling scan, and progress detection for general extensions.

@@ -1,5 +1,5 @@
 {
-  "implementation_commit": "f986089",
+  "implementation_commit": "ead0cd02ecc690061c6a8507048185972a245cf1",
   "full_check": {
     "command": [
       "taskset",
@@ -12,25 +12,23 @@
       "-c",
       "import subprocess,os\np='WaterfallRelease'\nsubprocess.run(['lake','build','Waterfall','Waterfall.Observe'],cwd=p,check=True)\nsubprocess.run(['taskset','-c','0,1','lake','env','lean','-j2','Tests/Parallel.lean'],cwd=p,env=dict(os.environ,LEAN_NUM_THREADS='2'),check=True)\nsubprocess.run(['lake','env','lean','-j1','Tests/ParallelAsync.lean'],cwd=p,timeout=40,check=True)\nsubprocess.run(['lake','test'],cwd=p,check=True)\nsubprocess.run(['python3','scripts/size.py'],cwd=p,check=True)\nsubprocess.run(['python3','scripts/check_docs.py'],cwd=p,check=True)\nsubprocess.run(['python3','scripts/build_site.py'],cwd=p,check=True)\n\nfrom pathlib import Path\nimport hashlib,subprocess,os,json\np=Path('WaterfallRelease').resolve()\nc=p/'consumer'\nsubprocess.run(['lake','build'],cwd=c,check=True)\npaths=subprocess.check_output(['lake','env','printenv','LEAN_PATH'],cwd=c,text=True).strip().split(os.pathsep)\nloaded=[(Path(d) if Path(d).is_absolute() else c/d)/'Waterfall/Core.olean' for d in paths]\nloaded=[q.resolve() for q in loaded if q.exists()]\nassert loaded==[(p/'.lake/build/lib/lean/Waterfall/Core.olean').resolve()],loaded\nassert loaded[0].stat().st_mtime_ns > (p/'Waterfall/Core.lean').stat().st_mtime_ns\nsubprocess.run(['lake','env','leanchecker','Consumer'],cwd=c,check=True)\nprint(json.dumps({'loaded_core':str(loaded[0]),'core_source_sha256':hashlib.sha256((p/'Waterfall/Core.lean').read_bytes()).hexdigest(),\n 'core_olean_sha256':hashlib.sha256(loaded[0].read_bytes()).hexdigest(),'consumer_kernel_check':'passed'}))\n"
     ],
-    "start_utc": "2026-09-12T01:11:56.687348+00:00",
-    "end_utc": "2026-09-12T01:12:55.560786+00:00",
-    "wall_seconds": 58.87343244254589,
+    "start_utc": "2026-09-12T01:51:17.306628+00:00",
+    "end_utc": "2026-09-12T01:54:33.401217+00:00",
+    "wall_seconds": 196.09455605596304,
     "returncode": 0,
     "host": "dl",
     "cpu": 0,
     "runtime_threads": 1,
-    "changed_sources": [
-      "WaterfallRelease/Tests/Suggestions.lean"
-    ],
+    "changed_sources": [],
     "files": {
       "HintCapture.lean": "6222f0a2fe20b0825d43464d6a07c8783d06073aaf5caa58b5d10100bb7c4b74",
-      "PanelSources.tar.gz": "f2250e9981815be8c1ebd7860c11c2de12a5a25bd7a74a2a6b547c51355beb69",
+      "PanelSources.tar.gz": "dac872059dd7174ac46985b5b122c000735c7c161cb962f8e9eb3d28d560556b",
       "WaterfallRelease/.github/workflows/ci.yml": "65ed9aba204dd4cb519d9cb973f6a077b0fe4588c6edd5dd9ba1875b023c93cc",
       "WaterfallRelease/.gitignore": "97b623a701002dd74091a32d55f616ebb60ec993aff4c84c2d4254550b1f9aa0",
       "WaterfallRelease/AGENTS.md": "59a6d70803271bbf8e6d66b40bf63a373f6f9f67b44f0618cd185d4aaff39a0f",
       "WaterfallRelease/Docs/Guide.lean": "ea5fea7b94deb5ce6ed0aa95ccf69d1c6ee9840aa1a68d6d0c6d05eec551da99",
       "WaterfallRelease/LICENSE": "7ef159fd8db5a7a9e8051aac48997353f26d744e25f730a0594a806c126d2114",
-      "WaterfallRelease/README.md": "b5409f71944c99177ca195bd1c69dc5e318d548631006b4b3baa223705224b0a",
+      "WaterfallRelease/README.md": "02336d03df3283c881d5b8c85f8d2279d8374aa90444999d4350b570d267ee21",
       "WaterfallRelease/SOURCE.json": "2579a9d3a355d69acb56bf77819dde49d6ad2004bb3e7ef52814e5926eda24a0",
       "WaterfallRelease/Tests/Canonical.lean": "f3ad650f9ff548565d827c0f66fa62c54248739453039c7249016a0e53136557",
       "WaterfallRelease/Tests/Capabilities.lean": "5cb0db41e3f681e5880aa80dfeca26ea28455bac9e6230154ba4f2f066b2607f",
@@ -48,24 +46,24 @@
       "WaterfallRelease/Tests/ReviewFixes.lean": "6311c8ca23c095f8e75cbfa73c9348856db75fceb840e8f08cef90b685dda6f7",
       "WaterfallRelease/Tests/Schedule.lean": "e5d9daed92332febcbc02e88056999128eb94482a59db33eeb4c03bdbbd1896f",
       "WaterfallRelease/Tests/SearchPolicy.lean": "6570f55377704ab0eb189c69cde05ef052bef3894a7f63763227e3143c481d3f",
-      "WaterfallRelease/Tests/Suggestions.lean": "bd23195eb9f344498022c220b86995a8017b248456a4c8af5c60dd70ee6a7919",
+      "WaterfallRelease/Tests/Suggestions.lean": "20bcf0d9d5d0f6089d81fc0033d07d31dfa623409eb4b12950fff13ae34e8e54",
       "WaterfallRelease/Tests/TrialPolicy.lean": "475d8ac889e167c67cf4060dc456c19f2eddebc3beebe5c5739b3bbf57423b70",
       "WaterfallRelease/Waterfall.lean": "eadf33309ab0e05eadeb22a9d472b0cd030df3e1c2f46117d19a0d4a1b64f44d",
       "WaterfallRelease/Waterfall/Canonical.lean": "f3478c170783bdcf510ef84fa86b7a8e42422b7536df4a4b05d0de99a39962af",
       "WaterfallRelease/Waterfall/Choices.lean": "9f9c0876996bb992c298b6b4aaad5966755dff40da0837d74faece4aadec8421",
       "WaterfallRelease/Waterfall/Committed.lean": "b042c0e4630be032b000a46230de9b67ff0e34e98fe0e0635383a86aa1872f6b",
-      "WaterfallRelease/Waterfall/Core.lean": "ed8f5f126c300fb840a27b4198afa2afcc3738b3fc9f158e214e66618dc0464b",
+      "WaterfallRelease/Waterfall/Core.lean": "e892dbd6af893fc3e25fccea10b9f5955744796b7266af9341386f2562c3d4f6",
       "WaterfallRelease/Waterfall/Observe.lean": "dcd5989da72eb17da78ac29cf453c5655297eaebda3bd35904c7bf9c5e13563d",
       "WaterfallRelease/Waterfall/Parallel.lean": "6ef0d02048b23ace6d045161f6a1fee1954a3d3f9439aa2f9f1020d569954c38",
-      "WaterfallRelease/Waterfall/Protocol.lean": "03717c0aa46c2bc0b9fdf9689f2a554a9ef5f6996815e512176aaf9c144109d4",
-      "WaterfallRelease/Waterfall/Suggestions.lean": "4ccef4e0d1baadcbae74bd8ea6b5db162d79fa38fdbaabd2f41398740cb98c0b",
+      "WaterfallRelease/Waterfall/Protocol.lean": "6202db42be85f912cb1506202fd72752cf870c06ce23cde0f02e35b9717e1ced",
+      "WaterfallRelease/Waterfall/Suggestions.lean": "8af87494d2a96acdc622769a68f878e2ea237db7993bfc3c75d8a6963e62d7b9",
       "WaterfallRelease/Waterfall/Tactic.lean": "f37d5abfea5ac40322595abab0bd0f71112dd6108f9f51095ea9be9f8121a9c7",
       "WaterfallRelease/consumer/Consumer.lean": "f0e6eb190b73882b2c18f3e8d3b461472619302ff8f0bfd762bccb3624c81160",
       "WaterfallRelease/consumer/lakefile.toml": "49dcc0575d7ef815cbd4950ee1d60b692587e7bfdcabf268f588c753935752fe",
       "WaterfallRelease/consumer/lean-toolchain": "54727eec5cba149c18842e6deb5c41b369d66455c93ce135d7d5347c782b2325",
-      "WaterfallRelease/docs/API.md": "4ef78b6491d03edfc0b05fecba8c9d4c91bc460f6902030fadaa1128e77d016b",
+      "WaterfallRelease/docs/API.md": "29ac8e8c97f65bef42dd3b04433a7bad35f021d6551228c8b34eb2f32b53ec11",
       "WaterfallRelease/docs/GUIDE.md": "e354ce94038e722244dd1e7366509bdf3813a9eaf7f2feb468b354a49ac8f8d5",
-      "WaterfallRelease/docs/IMPLEMENTATION.md": "845511fc71a21990aa0683a2ffb6f48623700fbae6a02ecd5780a112d3685fc0",
+      "WaterfallRelease/docs/IMPLEMENTATION.md": "fa1d40531db6986483131b1bb906bbe591858983054b1b20bf118cb03ec85bf7",
       "WaterfallRelease/docs/RELEASE.md": "a2603af18ba281d540aeadb7f8804f68e92519ca98e57434c595a021227dfaad",
       "WaterfallRelease/docs/VALIDATION.json": "d2f3d94e20cbd775d8e568f2a326fe33c97eb0039d79ca42c81e5f50d46bba4f",
       "WaterfallRelease/docs/reviews/2026-09-11/FIXES.md": "6293e54dac1d45a23f0dd04e3284ba5677cb81dd734644c89ebb168908570c0d",
@@ -79,8 +77,8 @@
       "WaterfallRelease/docs/reviews/2026-09-11/probes/ReadabilityProbe.lean": "f749526b5763c50b44b9f998810f4609a63135ec6703a6bb32433e6581ca922a",
       "WaterfallRelease/docs/reviews/2026-09-11/probes/SharedProgress.lean": "80322eb4a1a4678f5cd4c1ba20b8f1c17ef987bc36b680c74d520e084fdb6c47",
       "WaterfallRelease/docs/reviews/2026-09-11/review.log.gz": "f73ba45dd8134a41e6e91559d4ac82dd636c2808d81c1288d41af6b4b3c30e2a",
-      "WaterfallRelease/docs/reviews/2026-09-11/suggestions-full.log.gz": "b79f3ed3bc2521d42c05bbfd8482688cb4db14c002f2a1467ad08b9adf06f122",
-      "WaterfallRelease/docs/reviews/2026-09-11/suggestions-validation.json": "2e01f4f6e41259c5db3c5ea0ae33f92c747f88308e47556e1863277ac0ee4f41",
+      "WaterfallRelease/docs/reviews/2026-09-11/suggestions-full.log.gz": "633ee9ca8d6e6b71dce567e233c8558472fd38c06a2138158407bb1c6887c463",
+      "WaterfallRelease/docs/reviews/2026-09-11/suggestions-validation.json": "460ec05a0f4d665e598a71537ae514e02db8ea8c6a510dd160445aae56314d69",
       "WaterfallRelease/docs/reviews/2026-09-11/validation.json": "dbbb5a9c8e6988598b00046cd68035562b215cd67a8aaa755597cbf280f5c0a6",
       "WaterfallRelease/docs/reviews/2026-09-11/validation.log.gz": "2a3d33499b083436e343da20ed45d7b85379a54519e09b96a60a1fd03d1ba509",
       "WaterfallRelease/lake-manifest.json": "2bfcc5d30b299abbff632668734e26f4832758ddd4d1fc0b67457ed67a90d234",
@@ -96,7 +94,7 @@
       "WaterfallRelease/site/style.css": "4ced21d08fedc946205cf547f1f25c54bafdd2691b83129407029143167e6ed4"
     },
     "root": "/tmp/wf-single-policy-development-dl-20260909/project-build",
-    "log_sha256": "b2d0e6e56b6b624e351928ff4672acff1c1c794d66d94f659cd1a7c17446f0a1",
+    "log_sha256": "17005009babe5fa13ae3c5e8db84a2215d840677b76179d256ffac311f3a2fe1",
     "source_drift": [],
     "observed_oleans": {}
   },
@@ -118,17 +116,17 @@
     "Tests/ReviewFixes.lean": "6311c8ca23c095f8e75cbfa73c9348856db75fceb840e8f08cef90b685dda6f7",
     "Tests/Schedule.lean": "e5d9daed92332febcbc02e88056999128eb94482a59db33eeb4c03bdbbd1896f",
     "Tests/SearchPolicy.lean": "6570f55377704ab0eb189c69cde05ef052bef3894a7f63763227e3143c481d3f",
-    "Tests/Suggestions.lean": "bd23195eb9f344498022c220b86995a8017b248456a4c8af5c60dd70ee6a7919",
+    "Tests/Suggestions.lean": "20bcf0d9d5d0f6089d81fc0033d07d31dfa623409eb4b12950fff13ae34e8e54",
     "Tests/TrialPolicy.lean": "475d8ac889e167c67cf4060dc456c19f2eddebc3beebe5c5739b3bbf57423b70",
     "Waterfall.lean": "eadf33309ab0e05eadeb22a9d472b0cd030df3e1c2f46117d19a0d4a1b64f44d",
     "Waterfall/Canonical.lean": "f3478c170783bdcf510ef84fa86b7a8e42422b7536df4a4b05d0de99a39962af",
     "Waterfall/Choices.lean": "9f9c0876996bb992c298b6b4aaad5966755dff40da0837d74faece4aadec8421",
     "Waterfall/Committed.lean": "b042c0e4630be032b000a46230de9b67ff0e34e98fe0e0635383a86aa1872f6b",
-    "Waterfall/Core.lean": "ed8f5f126c300fb840a27b4198afa2afcc3738b3fc9f158e214e66618dc0464b",
+    "Waterfall/Core.lean": "e892dbd6af893fc3e25fccea10b9f5955744796b7266af9341386f2562c3d4f6",
     "Waterfall/Observe.lean": "dcd5989da72eb17da78ac29cf453c5655297eaebda3bd35904c7bf9c5e13563d",
     "Waterfall/Parallel.lean": "6ef0d02048b23ace6d045161f6a1fee1954a3d3f9439aa2f9f1020d569954c38",
-    "Waterfall/Protocol.lean": "03717c0aa46c2bc0b9fdf9689f2a554a9ef5f6996815e512176aaf9c144109d4",
-    "Waterfall/Suggestions.lean": "4ccef4e0d1baadcbae74bd8ea6b5db162d79fa38fdbaabd2f41398740cb98c0b",
+    "Waterfall/Protocol.lean": "6202db42be85f912cb1506202fd72752cf870c06ce23cde0f02e35b9717e1ced",
+    "Waterfall/Suggestions.lean": "8af87494d2a96acdc622769a68f878e2ea237db7993bfc3c75d8a6963e62d7b9",
     "Waterfall/Tactic.lean": "f37d5abfea5ac40322595abab0bd0f71112dd6108f9f51095ea9be9f8121a9c7",
     "consumer/Consumer.lean": "f0e6eb190b73882b2c18f3e8d3b461472619302ff8f0bfd762bccb3624c81160",
     "consumer/lakefile.toml": "49dcc0575d7ef815cbd4950ee1d60b692587e7bfdcabf268f588c753935752fe",
@@ -140,10 +138,37 @@
   },
   "noncomment_lines": {
     "Core.lean": 499,
-    "Core_with_protocol": 621,
-    "Suggestions.lean": 170,
-    "default_import": 1020,
-    "optional_observation_import": 937
+    "Core_with_protocol": 622,
+    "Suggestions.lean": 200,
+    "default_import": 1051,
+    "optional_observation_import": 938
   },
-  "consumer_kernel_check": "passed"
+  "consumer_kernel_check": "passed",
+  "five_gap_probes": {
+    "search::DVH-Compiler/Test/Compiler::FreshFrom.step": {
+      "stable_closure": true,
+      "internal_nanos": 39954038947,
+      "internal_raw_heartbeats": 360345770
+    },
+    "search::SF/VFA/06-MergeCaseStudy::mergesort_sorts": {
+      "stable_closure": true,
+      "internal_nanos": 18666907332,
+      "internal_raw_heartbeats": 182964722
+    },
+    "committed::DVH-Compiler/Test/Compiler::Related.mono": {
+      "stable_closure": true,
+      "internal_nanos": 11708635987,
+      "internal_raw_heartbeats": 87257365
+    },
+    "committed::SF/VFA/05-SelectionCaseStudy::cons_of_small_maintains_sort": {
+      "stable_closure": true,
+      "internal_nanos": 21921636448,
+      "internal_raw_heartbeats": 177796779
+    },
+    "committed::Acl2/QuicksortCaseStudy::perm_of_count_eq": {
+      "stable_closure": true,
+      "internal_nanos": 37205743448,
+      "internal_raw_heartbeats": 319312869
+    }
+  }
 }

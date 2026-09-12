@@ -1,21 +1,18 @@
 {
-  "implementation_commit": "5c645067b4dce2e8e684ad813d66619d05073d3c",
+  "implementation_commit": "ead0cd02ecc690061c6a8507048185972a245cf1",
   "toolchain": "leanprover/lean4:v4.30.0",
-  "validated_utc": "2026-09-11T22:43:04.544038+00:00",
+  "validated_utc": "2026-09-12T01:54:33.401217+00:00",
   "checks": [
     "lake build Waterfall Waterfall.Observe",
-    "lake env lean -j1 Tests/ReviewFixes.lean (90-second external cap)",
-    "lake env lean -j2 Tests/ReviewFixes.lean (90-second external cap; two CPUs)",
-    "lake env lean -j2 Tests/Parallel.lean",
-    "lake env lean -j1 Tests/ParallelAsync.lean (40-second external cap)",
     "lake test",
+    "parallel tests on CPUs 0 and 1",
     "python3 scripts/check_docs.py",
     "python3 scripts/size.py",
     "python3 scripts/build_site.py",
     "consumer: lake build",
     "consumer: lake env leanchecker Consumer",
-    "three original review probes (30-second external cap each)",
-    "10 reference proof plans compared byte-for-byte with the pre-fix plans"
+    "all 111 goals in search and committed modes",
+    "fresh compilation of every emitted editor replacement"
   ],
   "execution": {
     "host": "dl",
@@ -29,18 +26,13 @@
   },
   "noncomment_lines": {
     "Core.lean": 499,
-    "Core_with_protocol": 620,
-    "Parallel.lean": 114,
-    "default_import": 845,
-    "optional_observation_import": 936
-  },
-  "evidence": {
-    "receipt_sha256": "6b6f09cee195bf27f9333b11c7ee455e3413987c99c38f228c213e14117bfbcc",
-    "log_sha256": "10b449dd8a2a1a304683686d336f560951ef9e3455c0492e18ff34105377588c",
-    "archive": "docs/reviews/2026-09-11/fix-validation.json and fix-*.log.gz"
+    "Core_with_protocol": 622,
+    "Suggestions.lean": 200,
+    "default_import": 1051,
+    "optional_observation_import": 938
   },
   "sources": {
-    "Docs/Guide.lean": "cc55cada61ed10fc510c045e77ad7c688b49d311bb6df23ea87dc7443c8a269b",
+    "Docs/Guide.lean": "ea5fea7b94deb5ce6ed0aa95ccf69d1c6ee9840aa1a68d6d0c6d05eec551da99",
     "Tests/Canonical.lean": "f3ad650f9ff548565d827c0f66fa62c54248739453039c7249016a0e53136557",
     "Tests/Capabilities.lean": "5cb0db41e3f681e5880aa80dfeca26ea28455bac9e6230154ba4f2f066b2607f",
     "Tests/Coexistence.lean": "b26e516a55cd6de35113465843e9f0d12c654e47b0362aa5315df4e4694c95d9",
@@ -57,40 +49,148 @@
     "Tests/ReviewFixes.lean": "6311c8ca23c095f8e75cbfa73c9348856db75fceb840e8f08cef90b685dda6f7",
     "Tests/Schedule.lean": "e5d9daed92332febcbc02e88056999128eb94482a59db33eeb4c03bdbbd1896f",
     "Tests/SearchPolicy.lean": "6570f55377704ab0eb189c69cde05ef052bef3894a7f63763227e3143c481d3f",
+    "Tests/Suggestions.lean": "20bcf0d9d5d0f6089d81fc0033d07d31dfa623409eb4b12950fff13ae34e8e54",
     "Tests/TrialPolicy.lean": "475d8ac889e167c67cf4060dc456c19f2eddebc3beebe5c5739b3bbf57423b70",
     "Waterfall.lean": "eadf33309ab0e05eadeb22a9d472b0cd030df3e1c2f46117d19a0d4a1b64f44d",
     "Waterfall/Canonical.lean": "f3478c170783bdcf510ef84fa86b7a8e42422b7536df4a4b05d0de99a39962af",
     "Waterfall/Choices.lean": "9f9c0876996bb992c298b6b4aaad5966755dff40da0837d74faece4aadec8421",
     "Waterfall/Committed.lean": "b042c0e4630be032b000a46230de9b67ff0e34e98fe0e0635383a86aa1872f6b",
-    "Waterfall/Core.lean": "20370d65e03c3ded64957ab75d1d315845545d2497130fe5bd903d795ba0d1da",
+    "Waterfall/Core.lean": "e892dbd6af893fc3e25fccea10b9f5955744796b7266af9341386f2562c3d4f6",
     "Waterfall/Observe.lean": "dcd5989da72eb17da78ac29cf453c5655297eaebda3bd35904c7bf9c5e13563d",
     "Waterfall/Parallel.lean": "6ef0d02048b23ace6d045161f6a1fee1954a3d3f9439aa2f9f1020d569954c38",
-    "Waterfall/Protocol.lean": "db279efa9ab1d17fa677a93153d426092ba5f27d02f43cc0488d4978329a4fb4",
-    "Waterfall/Tactic.lean": "88b7410132c0ad51a60508c848d1887f3c37074ad73a4530e64490b17531fd8a",
+    "Waterfall/Protocol.lean": "6202db42be85f912cb1506202fd72752cf870c06ce23cde0f02e35b9717e1ced",
+    "Waterfall/Suggestions.lean": "8af87494d2a96acdc622769a68f878e2ea237db7993bfc3c75d8a6963e62d7b9",
+    "Waterfall/Tactic.lean": "f37d5abfea5ac40322595abab0bd0f71112dd6108f9f51095ea9be9f8121a9c7",
     "consumer/Consumer.lean": "f0e6eb190b73882b2c18f3e8d3b461472619302ff8f0bfd762bccb3624c81160",
     "consumer/lakefile.toml": "49dcc0575d7ef815cbd4950ee1d60b692587e7bfdcabf268f588c753935752fe",
-    "consumer/lean-toolchain": "54727eec5cba149c18842e6deb5c41b369d66455c93ce135d7d5347c782b2325",
     "docs/reviews/2026-09-11/probes/CommittedAgenda.lean": "d9700d34ea93ebbe4db87c3106ec8381a9a39d061f79528bf7b489a6a9b26c8a",
     "docs/reviews/2026-09-11/probes/ParallelCancelledCost.lean": "c94c721e0aad6558010a0f8b25631b04da59b6727000a076518cc68258efa260",
     "docs/reviews/2026-09-11/probes/ReadabilityProbe.lean": "f749526b5763c50b44b9f998810f4609a63135ec6703a6bb32433e6581ca922a",
     "docs/reviews/2026-09-11/probes/SharedProgress.lean": "80322eb4a1a4678f5cd4c1ba20b8f1c17ef987bc36b680c74d520e084fdb6c47",
-    "lakefile.toml": "a7de5dcd2da006d5a3bf4d399dbfd8e9010e0416469fc6fe40370e11f1987622",
-    "lean-toolchain": "54727eec5cba149c18842e6deb5c41b369d66455c93ce135d7d5347c782b2325"
+    "lakefile.toml": "600cb0ee8f8c8ae7ba7329373cca9d9e250f4aa4c0faf35b4284cf50b939f147"
   },
-  "proof_plan_comparison": {
-    "runs": 10,
-    "goals": 5,
-    "modes": [
-      "search",
-      "committed"
-    ],
-    "byte_identical_plans": true,
-    "records_sha256": "55a7d1d73493608c5ea7579c62e9bdad9e5d4435dbe9557bf0ed091162a5cafc"
+  "evidence": {
+    "log_sha256": "17005009babe5fa13ae3c5e8db84a2215d840677b76179d256ffac311f3a2fe1",
+    "archive": "docs/reviews/2026-09-11/suggestions-validation.json and suggestions-full.log.gz"
   },
-  "resolved_review_findings": [
-    "cancelled worker debt",
-    "committed sibling scan",
-    "extension progress"
-  ],
-  "review_resolution": "docs/reviews/2026-09-11/FIXES.md"
+  "proof_hints": {
+    "summary": {
+      "search": {
+        "goals": 111,
+        "ordinary": 98,
+        "hint": 98,
+        "replacement": 98,
+        "search_successes_in_hint_arm": 98,
+        "emission_failures": [],
+        "unknown_failures": [],
+        "term_fallbacks": 1,
+        "ordinary_only": [],
+        "hint_only": [],
+        "replacement_failures": [],
+        "no_target_timer": [],
+        "common_complete": 98,
+        "timing_note": "Internal individual-proof times; ordinary controls are from a separate run.",
+        "common_timings": {
+          "ordinary": {
+            "median": 0.7901852805,
+            "total": 553.90390004,
+            "max": 63.02398531
+          },
+          "hint": {
+            "median": 0.9357442844999999,
+            "total": 536.559291809,
+            "max": 62.276297389
+          },
+          "replacement": {
+            "median": 0.0826662175,
+            "total": 43.570106345,
+            "max": 11.111327735
+          }
+        }
+      },
+      "committed": {
+        "goals": 111,
+        "ordinary": 72,
+        "hint": 72,
+        "replacement": 72,
+        "search_successes_in_hint_arm": 72,
+        "emission_failures": [],
+        "unknown_failures": [],
+        "term_fallbacks": 1,
+        "ordinary_only": [],
+        "hint_only": [],
+        "replacement_failures": [],
+        "no_target_timer": [],
+        "common_complete": 72,
+        "timing_note": "Internal individual-proof times; ordinary controls are from a separate run.",
+        "common_timings": {
+          "ordinary": {
+            "median": 3.902083781,
+            "total": 562.495969064,
+            "max": 70.396933515
+          },
+          "hint": {
+            "median": 4.0817307405,
+            "total": 591.374801193,
+            "max": 69.120004523
+          },
+          "replacement": {
+            "median": 0.05128224,
+            "total": 30.095015094,
+            "max": 11.817369196
+          }
+        }
+      }
+    },
+    "evidence": {
+      "v5": {
+        "bundle_sha256": "83241b4a0302af459848629390357e7f9fb7903a92b6e513a7b3ea47411a742e",
+        "archives": {
+          "raw-v5.tar.gz": "2e80f9a2fc602bf7f7b99343057dfc8d7cd316adce492a017eb1733288c6a032",
+          "hints-00.tar.gz": "52d7cf64267860436f1e5446ea7beaa0c2dbe6500dafda3f914dd47e6149a19a",
+          "hints-01.tar.gz": "f450694438f50c9bdf2c06ea7867d1ff626035f2f6359d97b6cdd8ac77f9cf0f",
+          "hints-02.tar.gz": "c9223fb5d1517a944b112fe375ce3065835e3eddb5e7cc101608f3202e9172b7",
+          "hints-03.tar.gz": "085059f0a7aca418c41f8f5c6b542181ad3151240c88871822cdca901f6ebe74",
+          "hints-04.tar.gz": "5009878f2a697ec1c3835df92e158e0a7350c7f80ce0266392394d55ca1feb62",
+          "hints-05.tar.gz": "158814e60834439fa3713ff5a5235eb5411f24257e5d56292074bc3b8eaef387",
+          "hints-06.tar.gz": "ea4281b308b6854faf9b6aebf4f08ad11376ce75679ae2427fc78919cf0f092a",
+          "hints-07.tar.gz": "d87fe2e44722ea074b38d385400b6a6096cc1a49e25dca8b26ea7d2ee8fff1b2",
+          "hints-08.tar.gz": "69d9d9de7a670034758d94967b4926aa989d77a972ad030975ee5b109ade5bb2",
+          "hints-09.tar.gz": "fe641cb184405e18b08ac5ef44a0b71216cd5ccb574e36901943765c2d963c56",
+          "hints-10.tar.gz": "72644ea112fc8f9f44cb15b631b009bde519d678a81b4e5e3db23016a707f7a2",
+          "hints-11.tar.gz": "4a8a4d3d0d9f9fe4684e052ec61911cff1874e44eeca6510889d7999a8a3b0f8",
+          "hints-12.tar.gz": "847ff5e982bb8f1ea96e826f79c4f6b2bf4bfbf381aaf16845095a1f1155aa9b",
+          "hints-13.tar.gz": "328ca5e859b19a8d39d8c41fa4a109eb51f608ddd579709e2dfd6e0e061d12cb",
+          "hints-14.tar.gz": "46bef6d7531920eb3248baf54a75a708ce64bae45426db90075f0a2f46469ef2",
+          "hints-15.tar.gz": "f30ac7c261c60d59b71be6327a7265e6df0719399ca3624b3ded02341fd97450"
+        }
+      },
+      "v4": {
+        "bundle_sha256": "ad7a6ee650a8a70b5ba5e21e422c971611200723848e9e66ee1066bd5a4d40ba",
+        "archives": {
+          "raw-v4.tar.gz": "b93837a204aa588c5c177a50126034e9387a0b35bd46064e7978006057d6e294",
+          "hints-00.tar.gz": "f254cfa1a88beca485808ec66053af17494c59c9638a31eef3d97c8d6f1f614f",
+          "hints-01.tar.gz": "e2aba5f2514e295da0ba8967c8d6b659d37820633ac82da99ad7ac890a3b32e4",
+          "hints-02.tar.gz": "2e66c49e719b4a3e39730e8825362f46a64f0d7bd38e74db1b253f0d8c53f2ef",
+          "hints-03.tar.gz": "d40bf9c873483a03fb4e8feae2348b241f2095c22dd573d4914a0acd025db2e1",
+          "hints-04.tar.gz": "e0aa1c63c73f29582d69c4593a551e0ed328ff4e465b9f80bda23b453ee3dcfb",
+          "hints-05.tar.gz": "1ae61dde6392dfb48455727250b5d0600d4abf8c71037de5fb730ad17d76f8b9",
+          "hints-06.tar.gz": "6e23750d69a03f84fb8f370142171271ffb86342f5c9b2d4edd2564b9bdab25d",
+          "hints-07.tar.gz": "e4da59b913ddb6c755338324b03b4117299d2b5a034cecfcf87bb7b7f3cb0ffa",
+          "hints-08.tar.gz": "b0a094a48852ae4b547bb54a8832d6b5300fcf27f7a52c4e770754cfa250add3",
+          "hints-09.tar.gz": "c4e61968a65f5ffe01cc9bde1666970ab6b07ceb82067dc654880fcf3faf31b4",
+          "hints-10.tar.gz": "4aad6ec3e9ba89c2b1304b22a7a423723b65672f4d41d4b7765d2a25a549dc91",
+          "hints-11.tar.gz": "ed0ed9f32448c3c4f9bc6de09a17905e7cc3a1aa4c02a0ad1a7ff48313055d46",
+          "hints-12.tar.gz": "b5a29360513eb66de32ae20c3a1a0d24df67d0c1547dc49e7d2f309f260e1486",
+          "hints-13.tar.gz": "e67e091b6e428b2e183d3488bb801fed3a7dcbd763bfc1dbc7033ba4dc8d3eab",
+          "hints-14.tar.gz": "a85714aebcbe07a9ddfc306dbe13f3fe15b33f6d7b18c5e6e2b8a974d8d54df3",
+          "hints-15.tar.gz": "3fb933f2e961247ac4a83f2f0fa7b1fb95ecaaf1e95469ccfda7ff97cd8b7955"
+        }
+      }
+    },
+    "report": "docs/reviews/2026-09-11/SUGGESTIONS.md",
+    "benchmark_commit": "c34e42d4373dea8d8ca970dc7396f7c9fb796877",
+    "benchmark_branch": "wf-proof-hints-20260911"
+  },
+  "previous_review_resolution": "docs/reviews/2026-09-11/FIXES.md"
 }
