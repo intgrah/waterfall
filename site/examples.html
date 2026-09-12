@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Runnable Lean examples of expression optimization, insertion sort and tree traversal, adapted from Software Foundations.">
+  <title>Software Foundations examples · Waterfall</title>
+  <link rel="stylesheet" href="style.css">
+  
+</head>
+<body>
+<header><a class="wordmark" href="index.html">Waterfall</a><nav aria-label="Main"><a href="index.html">Overview</a><a href="examples.html" aria-current="page">Examples</a><a href="guide.html">Guide</a><a href="reference.html">Reference</a></nav></header>
+<main class="prose">
+<div class="hero"><span class="eyebrow">Software Foundations in Lean</span><h1>Read the goal.<br>Follow the proof.</h1><p class="lede">Three small developments show where Waterfall helps: recursive definitions, case analysis, helper lemmas and induction.</p></div>
+<p>These adaptations import only Waterfall and prove all their helper theorems. The <a href="../Docs/Examples.lean">complete source file</a> is checked by <code>lake test</code> on Lean 4.33.1 and 4.30.0. After <code>lake build</code>, run it directly with <code>lake env lean Docs/Examples.lean</code>.</p>
+<nav aria-label="Examples"><a href="#optimizer">Optimization</a><a href="#sorting">Insertion sort</a><a href="#traversal">Tree traversal</a></nav>
+<section id="optimizer"><span class="eyebrow">Logical Foundations / Imp</span><h2>An optimizer preserves meaning</h2>
+<p>An expression language has numerals, addition, natural subtraction and multiplication. The optimizer removes <code>0 + e</code> anywhere in an expression. Its correctness theorem says that evaluation before and after optimization agrees:</p>
+<pre><code>theorem optimize_sound (a : AExp) : eval (optimize a) = eval a := by
+  waterfall [eval, optimize]</code></pre>
+<p>The recursive functions interact with a special pattern inside addition. The explicit proof needs induction and further case analysis; here Waterfall selects and combines those operations from the goal and supplied definitions.</p>
+<details><summary>Complete optimizer example</summary><pre><code>import Waterfall
+
+namespace Waterfall.Examples.Optimization
+
+/-! An optimizer erases `0 + e` anywhere inside an arithmetic expression.
+Its correctness statement relates two recursive functions, including the
+optimizer&#x27;s special case inside the addition constructor. -/
+inductive AExp where
+  | num : Nat → AExp
+  | plus : AExp → AExp → AExp
+  | minus : AExp → AExp → AExp
+  | times : AExp → AExp → AExp
+
+def eval : AExp → Nat
+  | .num n =&gt; n
+  | .plus a b =&gt; eval a + eval b
+  | .minus a b =&gt; eval a - eval b
+  | .times a b =&gt; eval a * eval b
+
+def optimize : AExp → AExp
+  | .num n =&gt; .num n
+  | .plus (.num 0) b =&gt; optimize b
+  | .plus a b =&gt; .plus (optimize a) (optimize b)
+  | .minus a b =&gt; .minus (optimize a) (optimize b)
+  | .times a b =&gt; .times (optimize a) (optimize b)
+
+theorem optimize_sound (a : AExp) : eval (optimize a) = eval a := by
+  waterfall [eval, optimize]
+
+end Waterfall.Examples.Optimization</code></pre></details>
+<p class="code-caption">Adapted from <a href="https://softwarefoundations.cis.upenn.edu/lf-current/Imp.html">Software Foundations: Imp</a>.</p></section>
+<section id="sorting"><span class="eyebrow">Verified Functional Algorithms / Sort</span><h2>Insertion sort preserves order and contents</h2>
+<p>The inductive <code>Sorted</code> predicate describes an empty list, a singleton, or two ordered elements followed by a sorted suffix. Insertion’s comparison branches must preserve that evidence:</p>
+<pre><code>theorem insert_sorted (x : Nat) (xs : List Nat) :
+    Sorted xs → Sorted (insert x xs) := by
+  waterfall (effort := 3000) [insert]</code></pre>
+<p>This proof uses effort 3,000, above the default 1,000. The outer sort can then use the lemma directly:</p>
+<pre><code>theorem sort_sorted (xs : List Nat) : Sorted (sort xs) := by
+  waterfall [sort, insert_sorted]</code></pre>
+<p>Sortedness alone is not enough: returning an empty list would satisfy it. Waterfall also proves insertion preserves the elements, using supplied permutation lemmas. A short explicit induction composes those results for the full sort:</p>
+<pre><code>theorem sort_perm (xs : List Nat) : List.Perm xs (sort xs) := by
+  -- Keep this short permutation composition explicit; Waterfall proves the
+  -- insertion and sortedness obligations above, including the case analysis.
+  induction xs with
+  | nil =&gt; exact List.Perm.nil
+  | cons x xs ih =&gt; exact (List.Perm.cons x ih).trans (insert_perm x (sort xs))</code></pre>
+<p>Keeping this step explicit makes the example a mixture of automation and manual proof. Waterfall combines the two final guarantees:</p>
+<pre><code>theorem sort_correct (xs : List Nat) :
+    List.Perm xs (sort xs) ∧ Sorted (sort xs) := by
+  waterfall [sort_perm, sort_sorted]</code></pre>
+<details><summary>Complete insertion-sort example</summary><pre><code>import Waterfall
+
+namespace Waterfall.Examples.Sorting
+
+/-! Insertion sort needs both an order guarantee and a permutation guarantee:
+a function that returns `[]` would meet sortedness alone. -/
+def insert (x : Nat) : List Nat → List Nat
+  | [] =&gt; [x]
+  | y :: ys =&gt; if x ≤ y then x :: y :: ys else y :: insert x ys
+
+def sort : List Nat → List Nat
+  | [] =&gt; []
+  | x :: xs =&gt; insert x (sort xs)
+
+inductive Sorted : List Nat → Prop where
+  | nil : Sorted []
+  | single (x : Nat) : Sorted [x]
+  | step (x y : Nat) (xs : List Nat) :
+      x ≤ y → Sorted (y :: xs) → Sorted (x :: y :: xs)
+
+theorem insert_sorted (x : Nat) (xs : List Nat) :
+    Sorted xs → Sorted (insert x xs) := by
+  waterfall (effort := 3000) [insert]
+
+theorem sort_sorted (xs : List Nat) : Sorted (sort xs) := by
+  waterfall [sort, insert_sorted]
+
+theorem insert_perm (x : Nat) (xs : List Nat) :
+    List.Perm (x :: xs) (insert x xs) := by
+  waterfall [insert, List.Perm.refl, List.Perm.cons, List.Perm.swap]
+
+theorem sort_perm (xs : List Nat) : List.Perm xs (sort xs) := by
+  -- Keep this short permutation composition explicit; Waterfall proves the
+  -- insertion and sortedness obligations above, including the case analysis.
+  induction xs with
+  | nil =&gt; exact List.Perm.nil
+  | cons x xs ih =&gt; exact (List.Perm.cons x ih).trans (insert_perm x (sort xs))
+
+theorem sort_correct (xs : List Nat) :
+    List.Perm xs (sort xs) ∧ Sorted (sort xs) := by
+  waterfall [sort_perm, sort_sorted]
+
+end Waterfall.Examples.Sorting</code></pre></details>
+<p class="code-caption">Adapted from <a href="https://softwarefoundations.cis.upenn.edu/vfa-current/Sort.html">Software Foundations: Sort</a>.</p></section>
+<section id="traversal"><span class="eyebrow">Verified Functional Algorithms / SearchTree</span><h2>A traversal keeps its elements</h2>
+<p>The simple in-order traversal uses list append. Its accumulator version avoids intermediate appends, passing a changed accumulator in recursive calls. The helper must account for every accumulator:</p>
+<pre><code>theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
+    fastElements t acc = elements t ++ acc := by
+  waterfall [elements, fastElements, List.append_assoc]</code></pre>
+<p>Waterfall finds an induction proof that covers those recursive calls; append associativity connects the two implementations. The correctness theorem then specializes the helper to an empty accumulator:</p>
+<pre><code>theorem fast_elements_correct (t : Tree V) :
+    fastElements t [] = elements t := by
+  waterfall [fast_elements_helper]</code></pre>
+<p>This equivalence applies to every tree. It needs no search-tree ordering invariant.</p>
+<details><summary>Complete tree-traversal example</summary><pre><code>import Waterfall
+
+namespace Waterfall.Examples.TreeTraversal
+
+/-! The simple traversal appends lists. Its accumulator version avoids those
+intermediate appends. The helper quantifies over every accumulator, which must
+remain general through the induction; the final correctness theorem uses `[]`.
+No search-tree ordering invariant is needed for this traversal equivalence. -/
+inductive Tree (V : Type) where
+  | empty
+  | node (left : Tree V) (key : Nat) (value : V) (right : Tree V)
+
+def elements : Tree V → List (Nat × V)
+  | .empty =&gt; []
+  | .node left key value right =&gt; elements left ++ (key, value) :: elements right
+
+def fastElements : Tree V → List (Nat × V) → List (Nat × V)
+  | .empty, acc =&gt; acc
+  | .node left key value right, acc =&gt;
+      fastElements left ((key, value) :: fastElements right acc)
+
+theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
+    fastElements t acc = elements t ++ acc := by
+  waterfall [elements, fastElements, List.append_assoc]
+
+theorem fast_elements_correct (t : Tree V) :
+    fastElements t [] = elements t := by
+  waterfall [fast_elements_helper]
+
+end Waterfall.Examples.TreeTraversal</code></pre></details>
+<p class="code-caption">Adapted from <a href="https://softwarefoundations.cis.upenn.edu/vfa-current/SearchTree.html">Software Foundations: SearchTree</a>.</p></section>
+<section><h2>From examples to evaluation</h2><p>These examples demonstrate proof structure; they are not an independently selected coverage benchmark. The separate VFA development panel measured 43/53 search successes and 34/53 committed successes on Lean 4.30.0, with larger budgets and preceding helper facts supplied as assumptions.</p><p><a href="index.html#results">Read the results and their scope</a> · <a href="guide.html#proof-hints">Get checked proof scripts with waterfall?</a></p></section>
+</main>
+<footer><span>Waterfall 0.1 · Lean 4.33.1</span><span><a href="../LICENSE">Apache-2.0</a> · Private release candidate</span></footer>
+</body>
+</html>
