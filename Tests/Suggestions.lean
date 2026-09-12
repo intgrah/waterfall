@@ -92,3 +92,17 @@ elab "last_goal_hint" : tactic => do
 example (P Q R : Prop) (hp : P) (hq : Q) (hr : R) : P ∧ Q ∧ R := by
   refine ⟨?first, ?middle, ?last⟩
   check_hint "case'" => last_goal_hint
+
+-- Scaled solver configurations must print ordinary field names and numerals,
+-- without quotation hygiene marks or hidden elaborator references.
+elab "strong_hint " label:str : tactic => do
+  let hooks : Waterfall.Hooks := {
+    trials := fun _ => #[(4, 2)]
+    policy := ⟨Unit, (), fun space =>
+      space.expand 0 #[] (fun c => c.move.label == label.getString)⟩ }
+  discard <| Waterfall.Suggestions.run (← getRef) #[] hooks (fun h => Waterfall.run {} #[] h)
+
+example (P Q : Prop) (h : P ∧ Q) : Q ∧ P := by
+  check_hint "maxSteps" => strong_hint "simp"
+example (f g : Nat → Nat) (h : ∀ x, f x = g x) : f = g := by
+  check_hint "canonHeartbeats" => strong_hint "grind"
