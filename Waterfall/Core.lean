@@ -30,7 +30,7 @@ namespace Waterfall
 initialize registerTraceClass `Waterfall.search
 
 private def tacticMove (label : String) (stx : TSyntax `tactic) : Move :=
-  { cost := 1, label := label, run := evalTactic stx }
+  { cost := 1, label := label, command? := some stx, run := evalTactic stx }
 
 /-- Applicability never commits a probe's assignments or refunds its work. -/
 def Move.applicable (move : Move) : TacticM Bool :=

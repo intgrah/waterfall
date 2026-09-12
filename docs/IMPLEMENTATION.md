@@ -74,7 +74,11 @@ counters and other external callback effects cannot be rolled back.
 
 [Suggestions.lean](../Waterfall/Suggestions.lean) records only the accepted path,
 renders ordinary proof commands, and checks the printed text from the original
-checkpoint. It uses `case'` to select a later sibling while preserving the other
+checkpoint. Tactic adapters share existing commands through optional metadata;
+Meta operations have frontend recipes for induction, cases and constructors.
+Fixed-index induction prints equation-preserving `generalize` commands first.
+Forward instantiation prints `have` using the small derivation supplied to
+`MVarId.note`, recovered from the winning assignment. It uses `case'` to select a later sibling while preserving the other
 goals' order. If command rendering fails, it prints the completed proof term,
 inlining solver-generated auxiliary declarations. Only a checked replacement is
 offered through Lean's editor hint. Each parallel worker has its own recorder;
@@ -83,7 +87,7 @@ only the winning worker's hint is retained.
 ## Size and refactoring limits
 
 The engine remains 499 noncomment lines. Including the complete protocol gives
-621; the default import is 1,020, including the 170-line suggestion frontend.
+622; the default import is 1,051, including the 200-line suggestion frontend.
 Optional observation adds 316 lines. Counts include all local helpers and are
 reproduced by `python3 scripts/size.py`; moving shared declarations is not counted
 as an overall reduction. The hint frontend adds no inference family, search

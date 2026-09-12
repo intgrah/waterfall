@@ -110,8 +110,8 @@ python3 scripts/build_site.py
 ```
 
 The inference engine has 499 noncomment lines. Including its protocol gives
-621; the complete default import, including both configured modes and the tactic
-interface, parallel scheduler and proof hints, is 1,020. Optional observation adds 316 lines. These counts include
+622; the complete default import, including both configured modes and the tactic
+interface, parallel scheduler and proof hints, is 1,051. Optional observation adds 316 lines. These counts include
 local helpers; the package does not claim a sub-500-line complete import.
 
 The [independent adversarial review](docs/reviews/2026-09-11/README.md)

@@ -93,6 +93,10 @@ structure Move where
   its free variables belong to the operation's input checkpoint. Search policies
   need not use it; rendering must not recover it by rerunning the inference. -/
   subject : Option Expr := none
+  /-- An ordinary command proposal, when the adapter already constructs one.
+  Explanations must recheck its printed text in the input checkpoint. Dispatch
+  and policy selection never depend on this optional presentation metadata. -/
+  command? : Option (TSyntax `tactic) := none
   role : Name := .anonymous
   /-- Optional applicability probe. It runs under temporary state and consumes
   ambient resources, but a rejected candidate is not a dispatched attempt. -/

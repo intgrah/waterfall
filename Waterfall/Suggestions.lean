@@ -28,14 +28,6 @@ structure Script where
 private def sequence (commands : Array (TSyntax `tactic)) : TacticM (TSyntax `tactic) :=
   `(tactic| ($commands:tactic*))
 
-private def simpCommand (rules : Array (TSyntax `term)) (strength : Nat) :
-    TacticM (TSyntax `tactic) := do
-  let rs ← rules.mapM fun t => `(simpLemma| $t:term)
-  if strength == 1 then return ← `(tactic| simp_all [$rs,*])
-  let steps := quote (Simp.defaultMaxSteps * strength)
-  let depth := quote (({} : Simp.Config).maxDischargeDepth * strength)
-  `(tactic| simp_all (config := {maxSteps := $steps, maxDischargeDepth := $depth}) [$rs,*])
-
 private def grindCommand (rules : Array (TSyntax `term)) (strength : Nat)
     (constructors : Bool) : TacticM (TSyntax `tactic) := do
   let mut rules := rules
@@ -75,25 +67,72 @@ private def functionalCommand (move : Move) : TacticM (TSyntax `tactic) := do
   if others.isEmpty then return tactic
   `(tactic| (revert $others*; $tactic))
 
+/-- Ordinary induction, including the equation-preserving abstraction needed
+when an indexed relation is applied to a fixed expression. These are standard
+`revert`, `generalize`, and `induction` commands; search still owns the motive. -/
+private def inductionCommand (step : Selection) (major : FVarId) :
+    TacticM (TSyntax `tactic) := do
+  let target := mkIdent (← major.getDecl).userName
+  let declaredType ← inferType (mkFVar major)
+  let majorType ← whnf declaredType
+  let mut commands := #[]
+  let generalized := step.label.endsWith " generalized" ||
+    step.label.endsWith " generalized abstract indices"
+  if generalized then
+    let mut others : Array (TSyntax `ident) := #[]
+    for d in (← getLCtx) do
+      unless d.isImplementationDetail || d.fvarId == major ||
+          (← isProp d.type) || (← isType (mkFVar d.fvarId)) || declaredType.containsFVar d.fvarId do
+        others := others.push (mkIdent d.userName)
+    unless others.isEmpty do commands := commands.push (← `(tactic| revert $others*))
+  if step.label.endsWith "abstract indices" then
+    let .const name _ := majorType.getAppFn | throwError "missing indexed relation"
+    let info ← getConstInfoInduct name
+    let mut indices : Array Expr := #[]
+    let mut args : Array (TSyntax ``generalizeArg) := #[]
+    for index in majorType.getAppArgs[info.numParams:] do
+      unless index.isFVar || indices.contains index do
+        let n := indices.size
+        indices := indices.push index
+        let expr ← PrettyPrinter.delab index
+        let x := mkIdent ((← getLCtx).getUnusedName (Name.mkSimple s!"wf_index{n}"))
+        let h := mkIdent ((← getLCtx).getUnusedName (Name.mkSimple s!"wf_index_eq{n}"))
+        args := args.push (← `(generalizeArg| $h:ident : $expr = $x:ident))
+    commands := commands.push (← `(tactic| generalize $args,* at $target:ident))
+  let induction ← `(tactic| induction $target:ident)
+  let induction ← if generalized then `(tactic| $induction <;> intros) else pure induction
+  sequence (commands.push induction)
+
 /-- Render the common proof vocabulary. Display labels only select proposed
 recipes; they are never trusted as replay identifiers or evidence of correctness.
 The final independent elaboration is mandatory even for an all-tactic script. -/
-private def command (step : Selection) (rules : Array (TSyntax `term)) :
+private def command (step : Selection) (rules : Array (TSyntax `term))
+    (forwardProof? : Option Expr) :
     TacticM (TSyntax `tactic) := withMainContext do
   let g ← getMainGoal
   let rules ← prepareRules g rules
   let moves ← movesFor g rules step.strength step.remaining step.action.group
   let some move := moves[step.action.index]? | throwError "unknown proof operation"
+  if let some command := move.command? then
+    -- The engine runs an operation with its siblings outside the goal list.
+    -- In particular, a closing `done` must not inspect those pending siblings.
+    if step.action.group == .close then return ← `(tactic| focus ($command:tactic))
+    return command
   if step.action.group == .functions then return ← functionalCommand move
+  -- Resolve constructor names from the target's declaration, avoiding parsing
+  -- a display name back into a Lean identifier (which can contain quoted dots).
+  let type ← whnf (← g.getType)
+  if let .const name _ := type.getAppFn then
+    if let some (.inductInfo info) := (← getEnv).find? name then
+      for ctor in info.ctors do
+        if step.label == s!"close constructor {ctor}" || step.label == s!"constructor {ctor}" then
+          return ← `(tactic| apply $(mkIdent ctor))
   match step.label with
-  | "assumption/rfl" => `(tactic| first | assumption | rfl | contradiction)
-  | "omega" => `(tactic| omega)
-  | "simp" => do
-    let simp ← simpCommand rules step.strength
-    -- Search checks a leaf with its siblings outside the tactic goal list.
-    -- Preserve that scope: bare `done` would also inspect pending siblings.
-    `(tactic| focus ($simp; done))
-  | "normalize" => simpCommand rules step.strength
+  | "forward hypothesis" => do
+    let some proof := forwardProof? | throwError "missing forward derivation"
+    let term ← PrettyPrinter.delab proof
+    let name := mkIdent ((← getLCtx).getUnusedName `derived)
+    `(tactic| have $name:ident := $term)
   | "grind" => grindCommand rules step.strength false
   | "grind constructors" => grindCommand rules step.strength true
   | "intro" => `(tactic| intro _)
@@ -109,17 +148,7 @@ private def command (step : Selection) (rules : Array (TSyntax `term)) :
       else
         `(tactic| set_option tactic.customEliminators false in cases $target:term)
     else
-      if step.label.endsWith "abstract indices" then
-        throwError "indexed induction requires proof-term rendering"
-      let induction ← `(tactic| induction $target:term)
-      if !step.label.endsWith " generalized" then return induction
-      let majorType ← inferType (mkFVar major)
-      let mut others : Array (TSyntax `ident) := #[]
-      for d in (← getLCtx) do
-        unless d.isImplementationDetail || d.fvarId == major ||
-            (← isProp d.type) || (← isType (mkFVar d.fvarId)) || majorType.containsFVar d.fvarId do
-          others := others.push (mkIdent d.userName)
-      `(tactic| (revert $others*; $induction <;> intros))
+      inductionCommand step major
 
 /-- Reparse the displayed text, so validation checks exactly what the editor
 will insert, rather than syntax carrying hidden elaborator references. -/
@@ -167,14 +196,23 @@ def compile (initial : Tactic.SavedState) (roots : List MVarId)
     tryCatch (do
       let mut commands := #[]
       for (step, saved) in path.reverse do
-        saved.restore true
         let some g := step.agenda[step.focus]? | throwError "missing recorded goal"
+        -- note assigns the input goal to `newGoal derivedProof`. Read that
+        -- small proof from the winner, without rerunning forward enumeration
+        -- or delaborating the surrounding proof and its private auxiliaries.
+        let forwardProof? ← if step.action.group == .forward then do
+          winning.restore true
+          let some (.app _ value) ← getExprMVarAssignment? g
+            | throwError "missing forward-step assignment"
+          pure (some (← instantiateMVars value))
+        else pure none
+        saved.restore true
         setGoals [g]
         let tag ← g.getTag
         -- case' puts the selected goal's children before the other siblings,
         -- exactly as Space.expand does. A cyclic rotation would reorder them.
         evalTactic (← `(tactic| expose_names))
-        let tac ← command step rules
+        let tac ← command step rules forwardProof?
         if step.focus == 0 then
           commands := commands.push (← `(tactic| expose_names))
           commands := commands.push tac

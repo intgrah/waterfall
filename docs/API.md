@@ -38,8 +38,11 @@ accepted steps and gives the winning proof a checked editor replacement.
 `Suggestions.compile` accepts the input checkpoint, original goals, retained
 path and rules; it returns `Script` (`tactic`, `text`, `usedTerm`) while restoring
 the completed proof. It reparses the printed text and requires all original
-obligations to close with error recovery disabled. The inference engine and its
-recording interface are unchanged.
+obligations to close with error recovery disabled. The inference operations and
+accepted-step hook contract are unchanged. `Move.subject` identifies the
+expression acted upon; `Move.command?` optionally shares a command an adapter
+already constructs. These are presentation metadata, independent of dispatch,
+cost and policy selection. A command proposal is always checked as printed text.
 
 ## Search and checkpoints
 

@@ -106,3 +106,56 @@ example (P Q : Prop) (h : P ∧ Q) : Q ∧ P := by
   check_hint "maxSteps" => strong_hint "simp"
 example (f g : Nat → Nat) (h : ∀ x, f x = g x) : f = g := by
   check_hint "canonHeartbeats" => strong_hint "grind"
+
+-- A constructor that closes a data goal is an ordinary application, not a
+-- reason to print the entire proof term of a surrounding induction.
+inductive HintToken where
+  | one
+  | two
+example : HintToken := by check_hint "apply" => waterfall?
+
+-- Force the fixed-index operation to test its equation-preserving recipe.
+-- This tests rendering, not a claim that induction is needed to prove True.
+inductive HintChain : Nat → Prop where
+  | zero : HintChain 0
+  | step : HintChain n → HintChain (n + 1)
+
+elab "indexed_hint" : tactic => do
+  let hooks : Waterfall.Hooks := {
+    trials := fun _ => #[(2, 1)]
+    policy := ⟨Unit, (), fun space =>
+      if space.current.plan.isEmpty then
+        space.expand 0 #[#[.induction]] (fun c => c.move.label.endsWith "abstract indices")
+      else space.expand 0 #[] (fun _ => true)⟩ }
+  discard <| Waterfall.Suggestions.run (← getRef) #[] hooks (fun h => Waterfall.run {} #[] h)
+
+example (n : Nat) (h : HintChain (n + 1)) : True := by
+  check_hint "generalize" => indexed_hint
+
+-- Adapters can share an ordinary command proposal with the hint frontend;
+-- rule applications must not require delaborating the enclosing proof term.
+elab "rule_hint" : tactic => do
+  let rules := #[← `(term| And.intro)]
+  let hooks : Waterfall.Hooks := {
+    trials := fun _ => #[(2, 1)]
+    policy := ⟨Unit, (), fun space =>
+      if space.current.plan.isEmpty then
+        space.expand 0 #[#[.rules]] (fun c => c.move.label == "apply rule")
+      else space.expand 0 #[] (fun _ => true)⟩ }
+  discard <| Waterfall.Suggestions.run (← getRef) rules hooks (fun h => Waterfall.run {} rules h)
+
+example (P Q : Prop) (hp : P) (hq : Q) : P ∧ Q := by
+  check_hint "apply And.intro" => rule_hint
+
+-- A forward step prints the instantiated local fact, including constructor
+-- arguments, rather than delaborating the complete proof built after it.
+elab "forward_hint" : tactic => do
+  let hooks : Waterfall.Hooks := {
+    trials := fun _ => #[(2, 1)]
+    policy := ⟨Unit, (), fun space =>
+      if space.current.plan.isEmpty then space.expand 0 #[#[.forward]] (fun _ => true)
+      else space.expand 0 #[] (fun _ => true)⟩ }
+  discard <| Waterfall.Suggestions.run (← getRef) #[] hooks (fun h => Waterfall.run {} #[] h)
+
+example (P : Nat → Prop) (h : ∀ n, P n) (n : Nat) : P (n + 1) := by
+  check_hint "have derived" => forward_hint
