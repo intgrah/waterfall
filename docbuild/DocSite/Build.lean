@@ -79,8 +79,7 @@ def build (root : FilePath) : IO Unit := do
       ("footer", footer),
       ("body", body) ]
     IO.FS.writeFile (output / s!"{name}.html") html
-  for name in #["style.css", "guide.html", "reference.html"] do
-    copyTree (source / name) (output / name)
+  copyTree (source / "style.css") (output / "style.css")
   IO.FS.createDirAll (output / "source")
   for name in #["Docs", "waterfall", "Tests", "docs", "LICENSE"] do
     copyTree (root / name) (output / "source" / name)

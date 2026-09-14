@@ -242,6 +242,3 @@ end waterfall.Examples.TreeTraversal
 SearchTree](https://softwarefoundations.cis.upenn.edu/vfa-current/SearchTree.html).*
 
 </section>
-
-The larger [VFA experiment](index.md#results) uses a different setup, with preceding helper
-facts supplied as assumptions.

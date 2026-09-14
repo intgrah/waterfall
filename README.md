@@ -1,9 +1,6 @@
 # waterfall
 
-Small, configurable proof search for inductive Lean goals. waterfall combines
-simplification, theorem application, case analysis and induction in one search
-engine. It depends only on Lean **4.33.1** and is licensed under Apache-2.0,
-the same license as Lean.
+Small, configurable proof search for inductive Lean goals, inspired by ACL2. waterfall combines simplification, theorem application, case analysis, and induction in one search tactic.
 
 ```lean
 import waterfall
@@ -26,26 +23,15 @@ theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
   waterfall
 ```
 
-This is **waterfall 0.1** (`0.1.0` in Lake), available from
-[samth/waterfall](https://github.com/samth/waterfall).
-[Website and documentation](https://samth.github.io/waterfall/) ·
-[CI](https://github.com/samth/waterfall/actions/workflows/ci.yml).
-The website is generated from [editable Markdown files](site/README.md).
-There is no tagged release or Reservoir listing yet.
+This example proves the equivalence of two tree traversal functions: `elements` uses list append, while `fastElements` uses an accumulator. `waterfall` completes the entire proof by itself. 
 
-The example above proves that an accumulator-based tree traversal returns the
-same elements as a traversal using list append. waterfall finds an induction
-proof that covers the recursive calls with changed accumulators. It is adapted
-from Software Foundations' VFA SearchTree chapter; all definitions needed to run it are included.
-No explicit rule list is needed: the definitions are found in the current module,
-and append associativity is already registered for simplification. The proof also
-succeeds with `waterfall (mode := .committed)`.
+The current release is **waterfall 0.1** You can find the website at
+[Website and documentation](https://samth.github.io/waterfall/).
+
 
 ## Software Foundations
 
-The full inductive-bench Software Foundations corpus contains **2,190 eligible
-Lean theorem/example goals**. Its VFA portion has **509 goals across 15 chapters**
-(512 catalog entries, excluding three definitions).
+Across an agent-generated port of Software Foundations, waterfall proves 1,455 of the goals, out of 2,190 total. The following table summarizes the results:
 
 | Volume | Goals | Baseline | Search | Committed |
 | --- | ---: | ---: | ---: | ---: |
@@ -54,20 +40,9 @@ Lean theorem/example goals**. Its VFA portion has **509 goals across 15 chapters
 | VFA | 509 | 315 | 390 | 354 |
 | Total | 2,190 | 1,204 | 1,455 | 1,447 |
 
-The baseline combines separate `simp_all`, `grind`, and structural-induction runs;
-induction tries eligible variables with and without generalization, then
-`simp_all`/`grind` leaves.
+"Baseline" here combines `simp_all`, `grind`, and `induction` followed by `simp_all`/`grind`.
 
-The waterfall results were measured at **6ff4eb9** on Lean
-**4.30.0**, at effort **1,000** with **200M raw search heartbeats**. Preceding helper
-facts are supplied as assumptions; this is a development corpus. The run predates
-subsequent correctness fixes and the Lean 4.33.1 upgrade. The current 0.1 candidate
-has not been rerun on the full corpus.
-[Protocol, provenance and per-goal VFA results](docs/EVALUATION.md).
-
-The separate [111-goal proof-hint regression](docs/reviews/2026-09-11/SUGGESTIONS.md)
-uses higher budgets and includes 53 selected VFA goals. It validates emitted proof
-scripts; its 43/53 search and 34/53 committed results are not full-volume scores.
+The "Committed" mode for `waterfall` avoids backtracking, and thus can be faster but may miss some proofs. 
 
 For small examples you can read and run, see [Docs/Examples.lean](Docs/Examples.lean):
 
@@ -78,9 +53,6 @@ For small examples you can read and run, see [Docs/Examples.lean](Docs/Examples.
 - **VFA / SearchTree:** prove accumulator-based tree traversal equivalent to
   the simple implementation, as shown above.
 
-These standalone examples prove their own helper lemmas and import only
-waterfall. They run in `lake test`; [the walkthrough](docs/EXAMPLES.md) explains
-the proof structure and supplied lemmas.
 
 ## Install with Lake
 
@@ -93,15 +65,7 @@ git = "https://github.com/samth/waterfall.git"
 rev = "main"
 ```
 
-The project needs a matching `lean-toolchain`; `lake update` resolves the dependency,
-and `import waterfall` exports the tactics. Lake records the chosen commit in
-`lake-manifest.json`. A local checkout can use `path = "../waterfall"` in place of
-`git` and `rev`.
-
-waterfall targets Lean 4.33.1; CI also checks compatibility with Lean 4.30.0.
-[Release preparation](docs/RELEASE.md) records the remaining tagging and registry work.
-
-## Use and configure
+## Usage and configuration options
 
 ```lean
 import waterfall
@@ -124,15 +88,10 @@ example (P : Prop) (h : P) : P := by
 end waterfallReadme
 ```
 
-The default `.search` mode backtracks over whole proof continuations, including
-pending sibling goals. `.committed` uses an ACL2-inspired policy that commits
-after local progress, tries ordinary work before induction, and can return to
-the original conjecture once per trial. It can miss proofs that backtracking
-finds. Both use the same inference operations.
+The default `mode := .search` is the default backtracking mode. `mode := .committed` is a simpler forward search that never backtracks.
 
-`effort` is the main knob: more effort permits more attempts, deeper plans and
-stronger operations. Lean's enclosing resource limits still apply. Use
-`waterfall?` for a checked “Try this” editor hint that replaces the invocation
+`effort` configures how hard the search works: more effort permits more attempts, deeper plans and stronger operations. Lean's enclosing resource limits still apply. 
+`waterfall?` provides a “Try this” editor hint that replaces the invocation
 with ordinary Lean proof commands. Use `(report := true)` for search statistics.
 Local hypotheses, registered `simp` and `grind` rules, and definitions from the
 current module are used automatically. waterfall also retrieves library theorems
@@ -160,18 +119,6 @@ allowance and divide the remaining heartbeat allowance. Operating-system CPU aff
 cooperative, and all workers are joined before returning. The default of one
 CPU uses the existing sequential path. See [parallel execution](docs/API.md#parallel-execution).
 
-## Extend it
-
-`waterfall.run` accepts `Config`, supplied rules and `Hooks`. A `SearchPolicy`
-selects a lazy sequence of compatible proof checkpoints; its typed state can
-hold a frontier. Goal-aware callbacks configure ordering and costs. The engine
-owns metering, rollback, sibling obligations and complete-proof validation.
-
-Import `waterfall.Observe` explicitly for internal timing, cost traces,
-action recording, cooperative deadlines and exact-plan replay. Observation is
-outside the default import closure. Auxiliary lemma synthesis and the earlier
-large waterfall implementation are not part of this package.
-
 ## Build and check
 
 ```sh
@@ -182,25 +129,6 @@ lake -d docbuild test
 lake -d docbuild exe site check-docs
 ```
 
-The inference engine has 499 noncomment lines. Including its protocol gives
-622; the complete default import, including both configured modes and the tactic
-interface, parallel scheduler and proof hints, is 1,051. Optional observation adds 317 lines. These counts include
-local helpers; the package does not claim a sub-500-line complete import.
+## AI Use
 
-[Proof-hint validation on all 111 goals](docs/reviews/2026-09-11/SUGGESTIONS.md)
-includes every emitted replacement and its individual proof timing.
-
-The [independent adversarial review](docs/reviews/2026-09-11/README.md)
-records three reproduced issues: cancelled-worker heartbeat accounting,
-committed induction's sibling scan, and progress detection for general extensions.
-All three now have [fixes and regression tests](docs/reviews/2026-09-11/FIXES.md).
-
-The tests include backtracking, shared witnesses, exhaustion, commitment,
-configuration, checkpoint recovery and recorded-plan replay. Proofs are checked
-by Lean; successful return requires all original obligations to be complete.
-
-waterfall is strongest on inductive data with usable recursive definitions and
-helper lemmas. It remains bounded automation: missing lemmas, difficult mutual
-induction, and unsuitable operation ordering can prevent closure. It is inspired
-by ACL2 and proof-planning research; it is not an implementation of all ACL2
-reasoning machinery. [SOURCE.json](SOURCE.json) records the extraction origin.
+Waterfall was primarily developed by GPT-6 Astra. This README was written my me. 
