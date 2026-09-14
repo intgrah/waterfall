@@ -17,6 +17,10 @@ jobs:
       LEAN_NUM_THREADS: 2
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -m pip install -r site/requirements.txt
       - name: Select Lean version for this check
         env:
           TEST_LEAN: ${{ matrix.lean }}
@@ -35,8 +39,44 @@ jobs:
       - run: python3 scripts/check_docs.py
       - run: python3 scripts/size.py
       - run: lake env leanchecker Docs.Examples
-      - run: python3 scripts/build_site.py
       - run: lake build
         working-directory: consumer
       - run: lake env leanchecker Consumer
         working-directory: consumer
+
+  website:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -m pip install -r site/requirements.txt
+      - run: python3 scripts/check_site.py
+      - name: Upload website
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist/site
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [check, website]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Deploy website
+        id: deployment
+        uses: actions/deploy-pages@v4

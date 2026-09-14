@@ -1,0 +1,242 @@
+# Waterfall
+
+<nav aria-label="On this page">
+
+[Usage](#usage) · [Search](#how-it-works) · [Options](#configure) · [Results](#results) · [Lake package](#install)
+
+</nav>
+
+Waterfall is an ACL2-inspired induction tactic for Lean 4. It searches over structural and
+functional induction, motive generalization, case analysis and lemma application, with
+`simp_all` and `grind` as leaf solvers.
+
+The accumulator invariant for an in-order traversal, adapted from Software Foundations’ VFA
+SearchTree chapter:
+
+```lean
+theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
+    fastElements t acc = elements t ++ acc := by
+  waterfall
+```
+
+The induction hypotheses must apply at the modified accumulators in recursive calls to
+`fastElements`. Waterfall selects an induction scheme and searches for the case proofs. The
+definitions are found automatically in this module; append associativity is already a standard
+simplification rule. This proof also succeeds with `waterfall (mode := .committed)`.
+
+<details id="tree-proof">
+
+<summary>Definitions and complete proof</summary>
+
+```lean
+import Waterfall
+
+inductive Tree (V : Type) where
+  | empty
+  | node (left : Tree V) (key : Nat) (value : V) (right : Tree V)
+
+def elements : Tree V → List (Nat × V)
+  | .empty => []
+  | .node left key value right => elements left ++ (key, value) :: elements right
+
+def fastElements : Tree V → List (Nat × V) → List (Nat × V)
+  | .empty, acc => acc
+  | .node left key value right, acc =>
+      fastElements left ((key, value) :: fastElements right acc)
+
+theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
+    fastElements t acc = elements t ++ acc := by
+  waterfall
+```
+
+</details>
+
+<section id="usage">
+
+## Usage
+
+`waterfall` uses local hypotheses, Lean’s registered `simp` and `grind` rules, and definitions
+referenced in the goal or hypotheses that originate in the current module. It also retrieves
+library theorems by matching their conclusions against the goal. Local hypotheses support both
+backward application and forward instantiation.
+
+An optional rule list, as in `waterfall [f, h]`, supplies additional definitions and facts to
+`simp_all`, `grind` and backward theorem application. This is useful for imported definitions
+and lemmas that are not registered for rewriting or instantiation. Supplied recursive
+definitions also expose candidates for `fun_induction` and `fun_cases`. Library theorem
+application does not search for arbitrary rewrite rules.
+
+The [compiled tutorial](../Docs/Guide.lean) gives invocation examples; the [SF
+developments](examples.md) show complete proofs.
+
+<a id="proof-hints"></a>
+
+### Proof scripts
+
+`waterfall?` records the accepted proof path, renders it as tactic syntax, and validates the
+replacement from the original checkpoint. Backtracked branches are omitted. Leaf calls to
+`simp_all` and `grind` remain in the generated script.
+
+Operations without a tactic rendering fall back to an explicit proof term. Rendering and
+re-elaboration add overhead beyond discovery; both modes and parallel execution support hints.
+
+</section>
+
+<section id="how-it-works">
+
+## Search and commitment
+
+The aim is ACL2-style automation over Lean goals: recursive simplification and lemma use,
+followed by induction when those operations no longer suffice. Waterfall delegates local
+reasoning to Lean’s existing automation and searches over the surrounding proof structure.
+
+The default policy performs depth-first search over complete proof continuations, with iterative
+deepening in structural cost and solver strength. A checkpoint includes all sibling obligations
+and their shared metavariable context, so even a successful local closure remains backtrackable
+until the entire continuation succeeds.
+
+`(mode := .committed)` instead commits to the first locally progressing transition. It exhausts
+non-inductive processing across the agenda before considering induction, with one permitted
+return to the original conjecture at that boundary per trial. Stalled goals are reconsidered
+after progress in a sibling, since shared metavariable assignments may have changed. Discarded
+alternatives are not recovered by increasing the budget.
+
+<a id="induction"></a>
+
+### Induction and elimination
+
+Induction selection includes the major premise and the motive. Data and evidence induction offer
+plain and generalized motives, with a further alternative that abstracts fixed indices while
+retaining their defining equations. Lean’s registered induction and case eliminators are
+respected.
+
+Functional induction follows recursive calls occurring in the goal or local context.
+Generalization is a finite set of candidates derived from the local context, rather than
+arbitrary synthesis of strengthened invariants. An accumulator invariant such as
+`fast_elements_helper` remains a user-supplied theorem statement.
+
+Both policies use the same inference operations. Synthesizing auxiliary lemmas remains outside
+the package.
+
+</section>
+
+<section id="configure">
+
+## Options
+
+```lean
+waterfall (mode := .committed) (effort := 3000)
+```
+
+Both `waterfall` and `waterfall?` accept individual options or a structure such as `(config :=
+{mode := .search, effort := 3000})`.
+
+<div class="table-scroll">
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `mode` | `.search` | `.committed` disables backtracking after local progress. |
+| `effort` | `1000` | Global budget for dispatched operations and charged restarts, including failed attempts. |
+| `cpus` | `1` | Maximum concurrent depth/strength trials, sharing the total attempt and heartbeat budgets. |
+| `attemptHeartbeats` | `20000000` | Base raw-heartbeat slice per operation, scaled by trial strength. |
+| `lazy` | `true` | Generate each candidate batch when reached. False enumerates all batches in a phase up front. |
+| `deferChecks` | `false` | True postpones applicability checks until a candidate is considered. |
+| `report` | `false` | `true` prints search statistics. |
+
+</div>
+
+<a id="budgets"></a>
+
+### Effort and time limits
+
+`effort` meters dispatched operations and checkpoint restarts across all branches and trials.
+Neither failure nor rollback refunds work. Enumeration and ordering consume heartbeats and wall
+time but are not separate attempts.
+
+The default schedule begins with depth-zero trials at strengths 1–3, then enumerates
+depth/strength pairs diagonally. Increasing the sequential effort budget extends this sequence;
+it does not select a stronger initial trial. Depth limits structural path cost, while strength
+scales simplifier discharge limits and `grind` limits such as splitting and instantiation.
+
+`attemptHeartbeats` is the base raw-heartbeat slice per operation, scaled by trial strength and
+capped by the enclosing remaining allowance. Lean’s `maxHeartbeats` uses thousands of raw
+heartbeats. These limits are independent of the attempt budget and of `maxRecDepth`.
+
+<a id="parallel"></a>
+
+### Parallel execution
+
+```lean
+waterfall (cpus := 4) (effort := 3000)
+```
+
+This schedules depth/strength trials on at most four dedicated workers. Attempts are charged
+against a shared budget; the remaining heartbeat allowance is divided among workers. A complete
+proof is adopted atomically, and losing workers are cancelled cooperatively and joined before
+return.
+
+Parallelism is across trials, not within an individual solver call. Scheduling and resource
+division can change finite-budget coverage as well as latency. `cpus := 1` retains the
+sequential path; OS affinity can further restrict concurrency.
+
+</section>
+
+<section id="results">
+
+## Software Foundations
+
+Inductive-bench’s VFA port contains **509 theorem and example goals across 15 chapters**. Its
+512 catalog entries also include three definitions, excluded from proof evaluation. The latest
+full Software Foundations run covered all 2,190 eligible goals:
+
+<div class="table-scroll">
+
+| Volume | Goals | Search | Committed |
+| --- | --- | --- | --- |
+| LF | 937 | 740 | 739 |
+| PLF | 744 | 325 | 354 |
+| VFA | 509 | 390 | 354 |
+| Total | 2,190 | 1,455 | 1,447 |
+
+</div>
+
+Measured at [Waterfall
+6ff4eb9](https://github.com/samth/Waterfall/commit/6ff4eb97746a772f9ec353923343bd22c1805630) on
+Lean 4.30.0, with effort 1,000 and 200M raw search heartbeats. Preceding helper facts are
+supplied as assumptions; this is a development corpus. The run predates subsequent correctness
+fixes and the Lean 4.33.1 upgrade. The current 0.1 candidate has not been rerun on the full
+corpus.
+
+[Evaluation protocol and provenance](../docs/EVALUATION.md) · [All 509 VFA goals, both modes
+(CSV)](../docs/evaluation/vfa-2026-09-11.csv) · [Separate proof-hint
+regression](../docs/reviews/2026-09-11/SUGGESTIONS.md)
+
+The self-contained [LF and VFA examples](examples.md) cover optimizer soundness, insertion-sort
+correctness and accumulator traversal. They prove their helper lemmas locally; insertion-sort
+permutation retains an explicit composition step that the tested automated proofs did not
+discharge.
+
+</section>
+
+<section id="install">
+
+## Lake package
+
+Waterfall 0.1.0 is available from [samth/Waterfall](https://github.com/samth/Waterfall).
+A Lean project's `lakefile.toml` can depend on the Git repository:
+
+```toml
+[[require]]
+name = "waterfall"
+git = "https://github.com/samth/Waterfall.git"
+rev = "main"
+```
+
+The package depends only on Lean, targets 4.33.1, and is also tested on 4.30.0. The consumer
+must use a matching toolchain. Its tactics are exported by `import Waterfall`.
+Lake records the resolved Git commit in `lake-manifest.json`. There is no tagged
+release or Reservoir listing yet.
+
+[Lean tutorial](../Docs/Guide.lean)
+
+</section>

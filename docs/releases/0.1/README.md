@@ -3,7 +3,7 @@
 The selected release is **0.1**, represented as `0.1.0` in Lake. The default
 toolchain is Lean **4.33.1**, the latest stable release checked on 2026-09-12.
 Lean **4.30.0** remains covered by the compatibility checks. The repository,
-website and package remain private; no release tag or registry listing was made.
+website and package were private at validation time; no release tag or registry listing was made.
 
 ## Compatibility changes
 

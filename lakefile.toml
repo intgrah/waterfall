@@ -5,7 +5,8 @@ keywords = ["automation", "induction", "tactic", "software-verification"]
 license = "Apache-2.0"
 licenseFiles = ["LICENSE"]
 readmeFile = "README.md"
-# Private release candidate. Enable indexing only when publication is approved.
+homepage = "https://samth.github.io/Waterfall/"
+# Registry indexing remains disabled until the first tagged release.
 reservoir = false
 defaultTargets = ["Waterfall"]
 testDriver = "WaterfallTests"

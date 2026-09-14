@@ -26,8 +26,12 @@ theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
   waterfall
 ```
 
-This is **Waterfall 0.1** (`0.1.0` in Lake), a **private, unreleased candidate**, hosted at
-[samth/Waterfall](https://github.com/samth/Waterfall). It is not registered in Reservoir. The website is in [site/index.html](site/index.html).
+This is **Waterfall 0.1** (`0.1.0` in Lake), available from
+[samth/Waterfall](https://github.com/samth/Waterfall).
+[Website and documentation](https://samth.github.io/Waterfall/) ·
+[CI](https://github.com/samth/Waterfall/actions/workflows/ci.yml).
+The website is generated from [editable Markdown files](site/README.md).
+There is no tagged release or Reservoir listing yet.
 
 The example above proves that an accumulator-based tree traversal returns the
 same elements as a traversal using list append. Waterfall finds an induction
@@ -74,21 +78,24 @@ These standalone examples prove their own helper lemmas and import only
 Waterfall. They run in `lake test`; [the walkthrough](docs/EXAMPLES.md) explains
 the proof structure and supplied lemmas.
 
-## Install locally with Lake
+## Install with Lake
 
-Put this checkout next to your project, then add to your `lakefile.toml`:
+A `lakefile.toml` dependency can use the public Git repository:
 
 ```toml
 [[require]]
 name = "waterfall"
-path = "../Waterfall"
+git = "https://github.com/samth/Waterfall.git"
+rev = "main"
 ```
 
-Use the same `lean-toolchain`, run `lake update`, then `import Waterfall`.
-The release targets Lean 4.33.1; CI also checks compatibility with Lean 4.30.0.
-Repository access is required to clone the private Git repository. Public
-distribution and Reservoir registration remain pending. [Release preparation](docs/RELEASE.md) records the
-remaining publication steps.
+The project needs a matching `lean-toolchain`; `lake update` resolves the dependency,
+and `import Waterfall` exports the tactics. Lake records the chosen commit in
+`lake-manifest.json`. A local checkout can use `path = "../Waterfall"` in place of
+`git` and `rev`.
+
+Waterfall targets Lean 4.33.1; CI also checks compatibility with Lean 4.30.0.
+[Release preparation](docs/RELEASE.md) records the remaining tagging and registry work.
 
 ## Use and configure
 
@@ -166,6 +173,8 @@ large Waterfall implementation are not part of this package.
 ```sh
 lake build
 lake test
+# Python website dependencies can be installed in a virtual environment.
+python3 -m pip install -r site/requirements.txt
 python3 scripts/check_docs.py
 python3 scripts/size.py
 python3 scripts/build_site.py
@@ -183,7 +192,6 @@ The [independent adversarial review](docs/reviews/2026-09-11/README.md)
 records three reproduced issues: cancelled-worker heartbeat accounting,
 committed induction's sibling scan, and progress detection for general extensions.
 All three now have [fixes and regression tests](docs/reviews/2026-09-11/FIXES.md).
-The package remains an unreleased candidate.
 
 The tests include backtracking, shared witnesses, exhaustion, commitment,
 configuration, checkpoint recovery and recorded-plan replay. Proofs are checked
