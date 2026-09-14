@@ -173,11 +173,9 @@ large Waterfall implementation are not part of this package.
 ```sh
 lake build
 lake test
-# Python website dependencies can be installed in a virtual environment.
-python3 -m pip install -r site/requirements.txt
-python3 scripts/check_docs.py
-python3 scripts/size.py
-python3 scripts/build_site.py
+lake -d docbuild build
+lake -d docbuild test
+lake -d docbuild exe site check-docs
 ```
 
 The inference engine has 499 noncomment lines. Including its protocol gives

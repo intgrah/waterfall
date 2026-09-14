@@ -88,7 +88,6 @@ only the winning worker's hint is retained.
 
 The engine remains 499 noncomment lines. Including the complete protocol gives
 622; the default import is 1,051, including the 200-line suggestion frontend.
-Optional observation adds 317 lines. Counts include all local helpers and are
-reproduced by `python3 scripts/size.py`; moving shared declarations is not counted
-as an overall reduction. The hint frontend adds no inference family, search
-policy, or external dependency.
+Optional observation adds 317 lines. These recorded counts include all local
+helpers; moving shared declarations is not counted as an overall reduction. The
+hint frontend adds no inference family, search policy, or external dependency.

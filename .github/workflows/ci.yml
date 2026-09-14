@@ -17,27 +17,26 @@ jobs:
       LEAN_NUM_THREADS: 2
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: python3 -m pip install -r site/requirements.txt
       - name: Select Lean version for this check
         env:
           TEST_LEAN: ${{ matrix.lean }}
         run: |
-          python3 - <<'PY'
-          import os
-          from pathlib import Path
-          for name in ['lean-toolchain', 'consumer/lean-toolchain']:
-              Path(name).write_text('leanprover/lean4:' + os.environ['TEST_LEAN'] + '\n')
-          PY
+          printf 'leanprover/lean4:%s\n' "$TEST_LEAN" > lean-toolchain
+          cp lean-toolchain consumer/lean-toolchain
       - uses: leanprover/lean-action@v1
         with:
           build: "true"
           test: "true"
           use-mathlib-cache: "false"
-      - run: python3 scripts/check_docs.py
-      - run: python3 scripts/size.py
+      - name: Build documentation tooling
+        uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: docbuild
+          build: "true"
+          test: "false"
+          use-mathlib-cache: "false"
+      - run: lake exe site check-docs
+        working-directory: docbuild
       - run: lake env leanchecker Docs.Examples
       - run: lake build
         working-directory: consumer
@@ -46,14 +45,19 @@ jobs:
 
   website:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
+    env:
+      LEAN_NUM_THREADS: 2
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: leanprover/lean-action@v1
         with:
-          python-version: '3.12'
-      - run: python3 -m pip install -r site/requirements.txt
-      - run: python3 scripts/check_site.py
+          lake-package-directory: docbuild
+          build: "true"
+          test: "true"
+          use-mathlib-cache: "false"
+      - run: lake exe site check
+        working-directory: docbuild
       - name: Upload website
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v4

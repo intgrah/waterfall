@@ -1,0 +1,21 @@
+name = "waterfall-docs"
+version = "0.1.0"
+defaultTargets = ["site"]
+testDriver = "siteTests"
+reservoir = false
+
+[[require]]
+name = "markdown"
+git = "https://github.com/paulbutcher/lean-markdown.git"
+rev = "baa5b805367864885a321d987826448acbe8f162"
+
+[[lean_lib]]
+name = "DocSite"
+
+[[lean_exe]]
+name = "site"
+root = "Main"
+
+[[lean_exe]]
+name = "siteTests"
+root = "Tests"
