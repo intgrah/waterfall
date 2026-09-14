@@ -36,19 +36,27 @@ from Software Foundations' VFA SearchTree chapter; all definitions needed to run
 
 ## Software Foundations
 
-Waterfall has proved substantial goals from Lean ports of **Software Foundations**,
-including its **Verified Functional Algorithms (VFA)** volume. In our latest
-53-goal VFA development panel, search closed **43/53** goals and committed mode
-closed **34/53**. Search successes include selection-sort permutation,
-merge-sort sortedness, red-black-tree lookup preservation, and binomial-heap
-validity. Every successful `waterfall?` replacement was compiled independently.
+The full inductive-bench Software Foundations corpus contains **2,190 eligible
+Lean theorem/example goals**. Its VFA portion has **509 goals across 15 chapters**
+(512 catalog entries, excluding three definitions).
 
-These measurements used Lean **4.30.0**, effort **10,000**, and an **800M raw
-heartbeat** allowance; the default effort is 1,000. The panel spans six VFA
-chapters and is a selected development set, not a whole-book coverage estimate
-or a held-out test set. Benchmark targets receive preceding helper facts as
-assumptions. These figures are not a rerun on Lean 4.33.1.
-[Per-goal results and protocol](docs/reviews/2026-09-11/SUGGESTIONS.md).
+| Volume | Goals | Search | Committed |
+| --- | ---: | ---: | ---: |
+| LF | 937 | 740 | 739 |
+| PLF | 744 | 325 | 354 |
+| VFA | 509 | 390 | 354 |
+| Total | 2,190 | 1,455 | 1,447 |
+
+These full-corpus results were measured at Waterfall **6ff4eb9** on Lean
+**4.30.0**, at effort **1,000** with **200M raw search heartbeats**. Preceding helper
+facts are supplied as assumptions; this is a development corpus. The run predates
+subsequent correctness fixes and the Lean 4.33.1 upgrade. The current 0.1 candidate
+has not been rerun on the full corpus.
+[Protocol, provenance and per-goal VFA results](docs/EVALUATION.md).
+
+The separate [111-goal proof-hint regression](docs/reviews/2026-09-11/SUGGESTIONS.md)
+uses higher budgets and includes 53 selected VFA goals. It validates emitted proof
+scripts; its 43/53 search and 34/53 committed results are not full-volume scores.
 
 For small examples you can read and run, see [Docs/Examples.lean](Docs/Examples.lean):
 

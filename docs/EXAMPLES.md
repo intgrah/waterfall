@@ -79,9 +79,10 @@ Replace a `waterfall` call with `waterfall?` to obtain an editor replacement
 containing checked proof commands. Both support the same options and supplied
 lemmas. A suggested script may still use `simp_all` or `grind` for its leaf goals.
 
-These are readable examples, not an independently selected coverage benchmark.
-The separate [53-goal VFA results](reviews/2026-09-11/SUGGESTIONS.md) were measured
-on Lean 4.30.0 at effort 10,000 and 800M raw heartbeats. They report 43 search
-successes and 34 committed successes in a six-chapter development panel, within
-the larger 111-goal panel. They do not measure all of Software Foundations or
-establish that the same counts hold after the Lean upgrade.
+These examples illustrate proof structure. The separate [full-corpus
+evaluation](EVALUATION.md) covers 509 VFA theorem/example goals across 15 chapters,
+with 390 search and 354 committed successes at commit `6ff4eb9`, Lean 4.30.0 and
+effort 1,000. The later [proof-hint regression](reviews/2026-09-11/SUGGESTIONS.md)
+contains 53 selected VFA goals within its 111-goal panel, tested at effort 10,000.
+The full-corpus and selected-panel measurements use different revisions and
+budgets; neither is a rerun of the current 0.1 candidate on Lean 4.33.1.
