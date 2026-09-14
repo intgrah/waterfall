@@ -72,12 +72,12 @@ theorem insert_perm (x : Nat) (xs : List Nat) :
     List.Perm (x :: xs) (insert x xs) := by
   waterfall
 
+-- Match the insertion result in sort's recursive case, so grind instantiates
+-- the helper at sort xs rather than only at the original input list.
+grind_pattern insert_perm => insert x xs
+
 theorem sort_perm (xs : List Nat) : List.Perm xs (sort xs) := by
-  -- Keep this short permutation composition explicit; waterfall proves the
-  -- insertion and sortedness obligations above, including the case analysis.
-  induction xs with
-  | nil => exact List.Perm.nil
-  | cons x xs ih => exact (List.Perm.cons x ih).trans (insert_perm x (sort xs))
+  waterfall
 
 theorem sort_correct (xs : List Nat) :
     List.Perm xs (sort xs) ∧ Sorted (sort xs) := by

@@ -42,11 +42,21 @@ The proof must connect the evidence that the input is sorted with the branches
 of `insert`'s comparison. Once it is proved, `sort_sorted` uses it as a supplied
 lemma. `insert_perm` proves that insertion preserves the multiset of elements.
 
-The example keeps the short induction and permutation composition in `sort_perm`
-explicit. Plain waterfall and an induction followed by waterfall did not close
-that step at their tested default budgets. This is an example of mixing a small
-manual argument with automation, not a claim that waterfall proves every step
-of sorting without guidance. `sort_correct` then combines both properties:
+The induction case of `sort_perm` needs `insert_perm` instantiated at `sort xs`.
+Lean's inferred matching pattern selects `x :: xs`, so it misses the insertion
+result in that case. An explicit pattern registers the useful instance:
+
+```lean
+grind_pattern insert_perm => insert x xs
+
+theorem sort_perm (xs : List Nat) : List.Perm xs (sort xs) := by
+  waterfall
+```
+
+With this annotation, waterfall chooses the induction and proves both cases at
+the default budget. The annotation controls lemma instantiation in Lean's leaf
+solver; it does not prescribe the proof's induction or case structure.
+`sort_correct` then combines both properties:
 
 ```lean
 theorem sort_correct (xs : List Nat) :

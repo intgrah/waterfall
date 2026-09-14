@@ -32,8 +32,8 @@ in three self-contained developments:
 
 1. LF Imp: removing `0 + e` preserves expression evaluation.
 2. VFA Sort: insertion preserves sortedness and permutation, then those facts
-   establish insertion-sort correctness. The short `sort_perm` composition is
-   explicit; the other proof blocks use waterfall.
+   establish insertion-sort correctness. All proof blocks now use waterfall;
+   `insert_perm` has an explicit `grind_pattern` for the recursive sort case.
 3. VFA SearchTree: accumulator-based traversal agrees with append-based
    traversal, first for an arbitrary accumulator and then for `[]`.
 
@@ -45,9 +45,10 @@ and `leanchecker Docs.Examples` independently checks the resulting declarations.
 
 During preparation, `sort_perm` failed both with plain waterfall (1,000
 attempts) and with explicit induction followed by waterfall at the ambient
-resource limit. Its short direct permutation composition is retained rather
-than tuning the engine for an example. These development observations are not
-new benchmark coverage measurements.
+resource limit. Investigation on 2026-09-14 identified an unsuitable inferred
+matching pattern for `insert_perm`. Registering `insert x xs` makes `sort_perm`
+close with plain waterfall at the default budget, without engine changes.
+These development observations are not new benchmark coverage measurements.
 
 ## Benchmark claims in the README
 

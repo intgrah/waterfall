@@ -72,9 +72,9 @@ scripts; its 43/53 search and 34/53 committed results are not full-volume scores
 For small examples you can read and run, see [Docs/Examples.lean](Docs/Examples.lean):
 
 - **LF / Imp:** prove that eliminating `0 + e` preserves expression evaluation.
-- **VFA / Sort:** prove insertion preserves an inductive sortedness predicate;
-  combine waterfall proofs with a short explicit permutation argument to verify
-  insertion sort.
+- **VFA / Sort:** insertion-sort correctness, including sortedness and permutation
+  preservation. Every theorem uses waterfall; one helper has an explicit `grind`
+  matching pattern.
 - **VFA / SearchTree:** prove accumulator-based tree traversal equivalent to
   the simple implementation, as shown above.
 

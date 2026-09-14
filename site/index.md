@@ -205,9 +205,9 @@ These measurements predate the current release; [evaluation notes](../docs/EVALU
 the scope of the comparison.
 
 The self-contained [LF and VFA examples](examples.md) cover optimizer soundness, insertion-sort
-correctness and accumulator traversal. They prove their helper lemmas locally; insertion-sort
-permutation retains an explicit composition step that the tested automated proofs did not
-discharge.
+correctness and accumulator traversal. Every theorem, including the helper lemmas, is proved
+with waterfall. The sorting example supplies preservation lemmas and registers a matching
+pattern for permutation preservation.
 
 </section>
 

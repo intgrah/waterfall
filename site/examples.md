@@ -96,19 +96,17 @@ theorem sort_sorted (xs : List Nat) : Sorted (sort xs) := by
   waterfall [insert_sorted]
 ```
 
-`insert_perm` also needs no supplied rules. The permutation argument for the full sort has a
-separate obligation: composing `List.Perm.cons` with
-`insert_perm` instantiated at `sort xs`. waterfall proves `insert_perm`, but neither the direct
-invocation nor induction followed by waterfall closed this composition at the tested default
-budgets. The example retains that step explicitly:
+waterfall also proves `insert_perm` without supplied rules. For `sort_perm`, the induction
+case needs that lemma instantiated at `sort xs`. Lean's inferred matching pattern selects
+`x :: xs`, which misses the needed instance; `grind_pattern` registers `insert x xs` instead.
+With that annotation, waterfall finds the induction and closes both cases at its default
+budget:
 
 ```lean
+grind_pattern insert_perm => insert x xs
+
 theorem sort_perm (xs : List Nat) : List.Perm xs (sort xs) := by
-  -- Keep this short permutation composition explicit; waterfall proves the
-  -- insertion and sortedness obligations above, including the case analysis.
-  induction xs with
-  | nil => exact List.Perm.nil
-  | cons x xs ih => exact (List.Perm.cons x ih).trans (insert_perm x (sort xs))
+  waterfall
 ```
 
 The final specification uses both proved properties as hints:
@@ -155,12 +153,10 @@ theorem insert_perm (x : Nat) (xs : List Nat) :
     List.Perm (x :: xs) (insert x xs) := by
   waterfall
 
+grind_pattern insert_perm => insert x xs
+
 theorem sort_perm (xs : List Nat) : List.Perm xs (sort xs) := by
-  -- Keep this short permutation composition explicit; waterfall proves the
-  -- insertion and sortedness obligations above, including the case analysis.
-  induction xs with
-  | nil => exact List.Perm.nil
-  | cons x xs ih => exact (List.Perm.cons x ih).trans (insert_perm x (sort xs))
+  waterfall
 
 theorem sort_correct (xs : List Nat) :
     List.Perm xs (sort xs) ∧ Sorted (sort xs) := by
