@@ -47,14 +47,18 @@ The full inductive-bench Software Foundations corpus contains **2,190 eligible
 Lean theorem/example goals**. Its VFA portion has **509 goals across 15 chapters**
 (512 catalog entries, excluding three definitions).
 
-| Volume | Goals | Search | Committed |
-| --- | ---: | ---: | ---: |
-| LF | 937 | 740 | 739 |
-| PLF | 744 | 325 | 354 |
-| VFA | 509 | 390 | 354 |
-| Total | 2,190 | 1,455 | 1,447 |
+| Volume | Goals | Baseline | Search | Committed |
+| --- | ---: | ---: | ---: | ---: |
+| LF | 937 | 659 | 740 | 739 |
+| PLF | 744 | 230 | 325 | 354 |
+| VFA | 509 | 315 | 390 | 354 |
+| Total | 2,190 | 1,204 | 1,455 | 1,447 |
 
-These full-corpus results were measured at waterfall **6ff4eb9** on Lean
+The baseline combines separate `simp_all`, `grind`, and structural-induction runs;
+induction tries eligible variables with and without generalization, then
+`simp_all`/`grind` leaves.
+
+The waterfall results were measured at **6ff4eb9** on Lean
 **4.30.0**, at effort **1,000** with **200M raw search heartbeats**. Preceding helper
 facts are supplied as assumptions; this is a development corpus. The run predates
 subsequent correctness fixes and the Lean 4.33.1 upgrade. The current 0.1 candidate

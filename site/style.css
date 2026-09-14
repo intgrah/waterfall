@@ -14,7 +14,8 @@ body {
 }
 header, main, footer { max-width: 880px; margin: auto; padding: 22px 28px; }
 header { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; border-bottom: 1px solid var(--line); }
-.wordmark { font: 700 23px Georgia, serif; color: var(--ink); text-decoration: none; }
+header h1 { font: 700 28px/1.25 Georgia, serif; margin: 0; }
+header nav { flex-shrink: 0; }
 nav { display: flex; flex-wrap: wrap; gap: 20px; font-size: 14px; }
 nav p { margin: 0; }
 nav a[aria-current="page"] { color: var(--ink); font-weight: 600; }

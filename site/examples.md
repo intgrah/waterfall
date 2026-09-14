@@ -23,12 +23,11 @@ statement is:
 
 ```lean
 theorem optimize_sound (a : AExp) : eval (optimize a) = eval a := by
-  waterfall [eval, optimize]
+  waterfall
 ```
 
 The nested pattern `plus (num 0) b` requires additional discrimination within the addition case
-of structural induction. The supplied definitions expose both the optimizer’s equations and the
-evaluation equations to normalization.
+of structural induction. Both recursive definitions are found automatically in this module.
 
 <details>
 
@@ -62,7 +61,7 @@ def optimize : AExp → AExp
   | .times a b => .times (optimize a) (optimize b)
 
 theorem optimize_sound (a : AExp) : eval (optimize a) = eval a := by
-  waterfall [eval, optimize]
+  waterfall
 
 end waterfall.Examples.Optimization
 ```
@@ -86,18 +85,19 @@ elimination of sortedness evidence with the comparison split in `insert`:
 ```lean
 theorem insert_sorted (x : Nat) (xs : List Nat) :
     Sorted xs → Sorted (insert x xs) := by
-  waterfall (effort := 3000) [insert]
+  waterfall (effort := 3000)
 ```
 
-This invocation uses effort 3,000. Supplying the preservation lemma then discharges sortedness
-of the recursive sort:
+The definition of `insert` is found automatically; this proof uses effort 3,000. The recursive
+sort needs the preservation lemma as a hint:
 
 ```lean
 theorem sort_sorted (xs : List Nat) : Sorted (sort xs) := by
-  waterfall [sort, insert_sorted]
+  waterfall [insert_sorted]
 ```
 
-The permutation argument has a separate obligation: composing `List.Perm.cons` with
+`insert_perm` also needs no supplied rules. The permutation argument for the full sort has a
+separate obligation: composing `List.Perm.cons` with
 `insert_perm` instantiated at `sort xs`. waterfall proves `insert_perm`, but neither the direct
 invocation nor induction followed by waterfall closed this composition at the tested default
 budgets. The example retains that step explicitly:
@@ -111,7 +111,7 @@ theorem sort_perm (xs : List Nat) : List.Perm xs (sort xs) := by
   | cons x xs ih => exact (List.Perm.cons x ih).trans (insert_perm x (sort xs))
 ```
 
-The final specification packages permutation and sortedness:
+The final specification uses both proved properties as hints:
 
 ```lean
 theorem sort_correct (xs : List Nat) :
@@ -146,14 +146,14 @@ inductive Sorted : List Nat → Prop where
 
 theorem insert_sorted (x : Nat) (xs : List Nat) :
     Sorted xs → Sorted (insert x xs) := by
-  waterfall (effort := 3000) [insert]
+  waterfall (effort := 3000)
 
 theorem sort_sorted (xs : List Nat) : Sorted (sort xs) := by
-  waterfall [sort, insert_sorted]
+  waterfall [insert_sorted]
 
 theorem insert_perm (x : Nat) (xs : List Nat) :
     List.Perm (x :: xs) (insert x xs) := by
-  waterfall [insert, List.Perm.refl, List.Perm.cons, List.Perm.swap]
+  waterfall
 
 theorem sort_perm (xs : List Nat) : List.Perm xs (sort xs) := by
   -- Keep this short permutation composition explicit; waterfall proves the
@@ -200,7 +200,8 @@ theorem fast_elements_correct (t : Tree V) :
   waterfall [fast_elements_helper]
 ```
 
-No binary-search-tree invariant is required; the result is structural.
+The specialization uses the helper as a rewrite rule. No binary-search-tree invariant is
+required; the result is structural.
 
 <details>
 

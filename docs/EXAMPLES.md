@@ -15,7 +15,7 @@ defines arithmetic expressions and an optimization that removes `0 + e`.
 for every expression. Its proof is:
 
 ```lean
-waterfall [eval, optimize]
+waterfall
 ```
 
 The difficulty is the interaction between recursive evaluation and the special
@@ -35,7 +35,7 @@ list, a singleton, and a pair of ordered elements followed by a sorted suffix.
 ```lean
 theorem insert_sorted (x : Nat) (xs : List Nat) :
     Sorted xs → Sorted (insert x xs) := by
-  waterfall (effort := 3000) [insert]
+  waterfall (effort := 3000)
 ```
 
 The proof must connect the evidence that the input is sorted with the branches

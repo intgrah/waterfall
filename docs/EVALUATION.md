@@ -6,15 +6,15 @@ Its catalog has 512 entries: 493 theorems, 16 examples, and three tactic-bodied
 definitions excluded from proof evaluation. These are counts of the benchmark's
 Lean port, not a count of every exercise in every edition of the Coq books.
 
-| Volume | Eligible goals | Search | Committed |
-| --- | ---: | ---: | ---: |
-| LF | 937 | 740 | 739 |
-| PLF | 744 | 325 | 354 |
-| VFA | 509 | 390 | 354 |
-| Total | 2,190 | 1,455 | 1,447 |
+| Volume | Eligible goals | Baseline | Search | Committed |
+| --- | ---: | ---: | ---: | ---: |
+| LF | 937 | 659 | 740 | 739 |
+| PLF | 744 | 230 | 325 | 354 |
+| VFA | 509 | 315 | 390 | 354 |
+| Total | 2,190 | 1,204 | 1,455 | 1,447 |
 
-These are the updated arms of the September 11, 2026 full-corpus capability
-comparison, measured at waterfall commit
+The search and committed columns are the updated arms of the September 11, 2026
+full-corpus capability comparison, measured at waterfall commit
 [`6ff4eb9`](https://github.com/samth/waterfall/commit/6ff4eb97746a772f9ec353923343bd22c1805630).
 They predate subsequent correctness fixes, parallel execution, proof hints and
 the Lean 4.33.1 upgrade. The current 0.1 candidate has not been rerun on the full
@@ -30,9 +30,24 @@ held out.
 
 Each mode had a full old-versus-new comparison on 5,960 eligible goals, including
 3,770 goals from other suites. All 23,840 paired observations passed the strict
-reader, with no missing or uncertain outcomes. The website reports only the
-updated arms. The [original evaluation report](https://github.com/samth/lean-waterfall/blob/main/docs/reviews/2026-09-11/core-capabilities/README.md)
+reader, with no missing or uncertain outcomes. The waterfall columns report the updated arms. The [original evaluation report](https://github.com/samth/lean-waterfall/blob/main/docs/reviews/2026-09-11/core-capabilities/README.md)
 describes the comparisons and execution contract.
+
+## Baseline
+
+The baseline counts a goal if any of three independently budgeted profiles proves it:
+`simp_all`, `grind`, or structural induction followed by simplification/grind.
+Induction enumerates eligible recursive data variables and inductive proof evidence,
+with either no generalization or all admissible data parameters generalized.
+
+These baseline observations come from the completed September 6 benchmark, not the
+old-core arm of the September 11 comparison. All 2,190 SF goal IDs, source hashes
+and supplied-fact hashes match the later search run. The baseline profiles had an
+800M raw-heartbeat search allowance, versus 200M for the reported waterfall runs;
+this is a coverage comparison of the recorded configurations, not an equal-budget
+speed comparison. Evaluation uncertainty contributes no baseline successes.
+The [baseline summary](evaluation/sf-baselines-2026-09-06.json) records individual
+profile counts and the original result source.
 
 ## Data
 

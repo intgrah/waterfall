@@ -1,0 +1,37 @@
+{
+  "run": "wf-core-full-batched-20260906",
+  "source": "https://github.com/samth/lean-waterfall/blob/b57e66bf349214d84a832fc84bae9ae63352b67e/docs/reviews/2026-09-06/full-inductive-bench/final/sf-volume-summary.json",
+  "source_sha256": "d6f21bc5ae32c56d2717634d591ad6266291ed732f400f735d22d82d7675cec5",
+  "definition": "Union of independently budgeted simp_all, grind and structural-induction profiles; only accepted successes count.",
+  "comparison_check": "All 2190 SF goal IDs, source_sha256 and facts_sha256 match capabilities-search-full-v2 candidate observations.",
+  "volumes": {
+    "LF": {
+      "eligible_goals": 937,
+      "simp_all": 305,
+      "grind": 556,
+      "structural_induction": 368,
+      "baseline_union": 659
+    },
+    "PLF": {
+      "eligible_goals": 744,
+      "simp_all": 45,
+      "grind": 176,
+      "structural_induction": 124,
+      "baseline_union": 230
+    },
+    "VFA": {
+      "eligible_goals": 509,
+      "simp_all": 129,
+      "grind": 220,
+      "structural_induction": 240,
+      "baseline_union": 315
+    }
+  },
+  "total_sf": {
+    "eligible_goals": 2190,
+    "simp_all": 479,
+    "grind": 952,
+    "structural_induction": 732,
+    "baseline_union": 1204
+  }
+}

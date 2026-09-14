@@ -39,7 +39,7 @@ def optimize : AExp → AExp
   | .times a b => .times (optimize a) (optimize b)
 
 theorem optimize_sound (a : AExp) : eval (optimize a) = eval a := by
-  waterfall [eval, optimize]
+  waterfall
 
 end waterfall.Examples.Optimization
 
@@ -63,14 +63,14 @@ inductive Sorted : List Nat → Prop where
 
 theorem insert_sorted (x : Nat) (xs : List Nat) :
     Sorted xs → Sorted (insert x xs) := by
-  waterfall (effort := 3000) [insert]
+  waterfall (effort := 3000)
 
 theorem sort_sorted (xs : List Nat) : Sorted (sort xs) := by
-  waterfall [sort, insert_sorted]
+  waterfall [insert_sorted]
 
 theorem insert_perm (x : Nat) (xs : List Nat) :
     List.Perm (x :: xs) (insert x xs) := by
-  waterfall [insert, List.Perm.refl, List.Perm.cons, List.Perm.swap]
+  waterfall
 
 theorem sort_perm (xs : List Nat) : List.Perm xs (sort xs) := by
   -- Keep this short permutation composition explicit; waterfall proves the

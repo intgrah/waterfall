@@ -11,6 +11,11 @@ private def expectFailure (action : IO Unit) : IO Unit := do
 
 def main : IO Unit := do
   ensure <| fillTemplate "$body $footer" #[("body", "$footer"), ("footer", "F")] == "$footer F"
+  let .ok (heading, body) := renderPage "# waterfall\n\nPage content."
+    | throw <| IO.userError "Page title was not extracted"
+  ensure <| containsText heading "<h1>waterfall</h1>"
+  ensure <| containsText body "Page content." && !containsText body "<h1>"
+  ensure <| !(renderPage "## Missing page title").isOk
   let page := htmlMetadata "<!-- <a href='bad'> --><script>const x = '<a href=bad>';</script><div id='α'><a title='a > b' href=\"a&amp;b.html#x\">link</a><img src=photo.png>"
   ensure <| page.ids == #["α"]
   ensure <| page.links == #["a&b.html#x", "photo.png"]

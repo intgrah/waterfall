@@ -6,6 +6,8 @@ The page text, code examples and tables live in Markdown:
 - [examples.md](examples.md): Software Foundations examples and complete proofs.
 - [footer.md](footer.md): shared footer.
 
+Each page starts with a Markdown `#` heading, displayed beside the main navigation.
+
 Fenced `lean` blocks contain the displayed proof code. Complete examples start
 with `import waterfall`; the Lean documentation tool compiles them directly from
 the Markdown. Short theorem excerpts must occur in one of those checked examples.

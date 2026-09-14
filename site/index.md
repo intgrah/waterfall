@@ -185,31 +185,24 @@ sequential path; OS affinity can further restrict concurrency.
 
 ## Software Foundations
 
-Inductive-bench’s VFA port contains **509 theorem and example goals across 15 chapters**. Its
-512 catalog entries also include three definitions, excluded from proof evaluation. The latest
-full Software Foundations run covered all 2,190 eligible goals:
+The recorded development runs cover 2,190 theorem and example goals from Software Foundations,
+including 509 VFA goals across 15 chapters.
 
 <div class="table-scroll">
 
-| Volume | Goals | Search | Committed |
-| --- | --- | --- | --- |
-| LF | 937 | 740 | 739 |
-| PLF | 744 | 325 | 354 |
-| VFA | 509 | 390 | 354 |
-| Total | 2,190 | 1,455 | 1,447 |
+| Volume | Goals | Baseline | Search | Committed |
+| --- | --- | --- | --- | --- |
+| LF | 937 | 659 | 740 | 739 |
+| PLF | 744 | 230 | 325 | 354 |
+| VFA | 509 | 315 | 390 | 354 |
+| Total | 2,190 | 1,204 | 1,455 | 1,447 |
 
 </div>
 
-Measured at [waterfall
-6ff4eb9](https://github.com/samth/waterfall/commit/6ff4eb97746a772f9ec353923343bd22c1805630) on
-Lean 4.30.0, with effort 1,000 and 200M raw search heartbeats. Preceding helper facts are
-supplied as assumptions; this is a development corpus. The run predates subsequent correctness
-fixes and the Lean 4.33.1 upgrade. The current 0.1 candidate has not been rerun on the full
-corpus.
-
-[Evaluation protocol and provenance](../docs/EVALUATION.md) · [All 509 VFA goals, both modes
-(CSV)](../docs/evaluation/vfa-2026-09-11.csv) · [Separate proof-hint
-regression](../docs/reviews/2026-09-11/SUGGESTIONS.md)
+The baseline combines separate runs of `simp_all`, `grind`, and one structural induction with
+`simp_all`/`grind` leaves. Induction tries eligible variables with and without generalization.
+These measurements predate the current release; [evaluation notes](../docs/EVALUATION.md) give
+the scope of the comparison.
 
 The self-contained [LF and VFA examples](examples.md) cover optimizer soundness, insertion-sort
 correctness and accumulator traversal. They prove their helper lemmas locally; insertion-sort

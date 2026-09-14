@@ -9,14 +9,24 @@ def pages : Array (String × String) :=
 
 def outputDir (root : FilePath) : FilePath := root / "dist/site"
 
-def renderMarkdown (source : String) : String := Id.run do
-  let mut html := GFMarkdown.renderHtml (GFMarkdown.parseDocument source)
+def renderBlocks (blocks : GFMarkdown.Document) : String := Id.run do
+  let mut html := GFMarkdown.renderHtml blocks
   html := html.replace "href=\"../" "href=\"source/"
   for (name, _) in pages do
     let target := if name == "index" then "./" else name ++ ".html"
     html := html.replace s!"href=\"{name}.md\"" s!"href=\"{target}\""
     html := html.replace s!"href=\"{name}.md#" s!"href=\"{target}#"
   return html
+
+def renderMarkdown (source : String) : String :=
+  renderBlocks (GFMarkdown.parseDocument source)
+
+/-- The page's Markdown title occupies the shared header, beside navigation. -/
+def renderPage (source : String) : Except String (String × String) := do
+  let .heading level content :: body := GFMarkdown.parseDocument source
+    | throw "Page must start with a level-one heading"
+  unless level.val == 0 do throw "Page must start with a level-one heading"
+  return (renderBlocks [.heading level content], renderBlocks body)
 
 /-- Substitute the frame once, preserving literal dollar names in page content. -/
 def fillTemplate (source : String) (fields : Array (String × String)) : String :=
@@ -58,13 +68,16 @@ def build (root : FilePath) : IO Unit := do
   let template ← IO.FS.readFile (source / "_template.html")
   let footer := renderMarkdown (← IO.FS.readFile (source / "footer.md"))
   for (name, title) in pages do
+    let (heading, body) ← match renderPage (← IO.FS.readFile (source / s!"{name}.md")) with
+      | .ok page => pure page
+      | .error error => throw <| IO.userError s!"{name}.md: {error}"
     let current := " aria-current=\"page\""
     let html := fillTemplate template #[
-      ("title", Html.escape title),
+      ("title", Html.escape title), ("heading", heading),
       ("overview_current", if name == "index" then current else ""),
       ("examples_current", if name == "examples" then current else ""),
       ("footer", footer),
-      ("body", renderMarkdown (← IO.FS.readFile (source / s!"{name}.md"))) ]
+      ("body", body) ]
     IO.FS.writeFile (output / s!"{name}.html") html
   for name in #["style.css", "guide.html", "reference.html"] do
     copyTree (source / name) (output / name)
