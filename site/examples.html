@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header><a class="wordmark" href="./">Waterfall</a><nav aria-label="Main"><a href="./">Overview</a><a href="examples.html" aria-current="page">Examples</a><a href="guide.html">Guide</a><a href="reference.html">Reference</a></nav></header>
+<header><a class="wordmark" href="./">Waterfall</a><nav aria-label="Main"><a href="./">Overview</a><a href="examples.html" aria-current="page">Examples</a></nav></header>
 <main>
 <h1>Examples from Software Foundations</h1>
 <p>These three adaptations are in <a href="../Docs/Examples.lean">Docs/Examples.lean</a>. All definitions and helper proofs are included. The file imports only Waterfall and is checked by <code>lake test</code> on Lean 4.33.1 and 4.30.0.</p>
@@ -117,8 +117,8 @@ end Waterfall.Examples.Sorting</code></pre></details>
 <p>Equivalence of the append-based and accumulator traversals requires an induction hypothesis applicable at the accumulator arguments of the recursive calls:</p>
 <pre><code>theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
     fastElements t acc = elements t ++ acc := by
-  waterfall [elements, fastElements, List.append_assoc]</code></pre>
-<p>The supplied append-associativity lemma provides the algebraic normalization. The traversal theorem is the empty-accumulator specialization:</p>
+  waterfall</code></pre>
+<p>Waterfall discovers the definitions in this module, and append associativity is already registered for simplification. The traversal theorem is the empty-accumulator specialization:</p>
 <pre><code>theorem fast_elements_correct (t : Tree V) :
     fastElements t [] = elements t := by
   waterfall [fast_elements_helper]</code></pre>
@@ -146,7 +146,7 @@ def fastElements : Tree V → List (Nat × V) → List (Nat × V)
 
 theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
     fastElements t acc = elements t ++ acc := by
-  waterfall [elements, fastElements, List.append_assoc]
+  waterfall
 
 theorem fast_elements_correct (t : Tree V) :
     fastElements t [] = elements t := by

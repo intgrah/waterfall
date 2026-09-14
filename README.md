@@ -23,7 +23,7 @@ def fastElements : Tree V → List (Nat × V) → List (Nat × V)
 
 theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
     fastElements t acc = elements t ++ acc := by
-  waterfall [elements, fastElements, List.append_assoc]
+  waterfall
 ```
 
 This is **Waterfall 0.1** (`0.1.0` in Lake), a **private, unreleased candidate**, hosted at
@@ -33,6 +33,9 @@ The example above proves that an accumulator-based tree traversal returns the
 same elements as a traversal using list append. Waterfall finds an induction
 proof that covers the recursive calls with changed accumulators. It is adapted
 from Software Foundations' VFA SearchTree chapter; all definitions needed to run it are included.
+No explicit rule list is needed: the definitions are found in the current module,
+and append associativity is already registered for simplification. The proof also
+succeeds with `waterfall (mode := .committed)`.
 
 ## Software Foundations
 
@@ -120,8 +123,10 @@ finds. Both use the same inference operations.
 stronger operations. Lean's enclosing resource limits still apply. Use
 `waterfall?` for a checked “Try this” editor hint that replaces the invocation
 with ordinary Lean proof commands. Use `(report := true)` for search statistics.
-Imported definitions and helpful lemmas can be supplied in brackets. Local
-hypotheses are used automatically.
+Local hypotheses, registered `simp` and `grind` rules, and definitions from the
+current module are used automatically. Waterfall also retrieves library theorems
+for backward application. Imported definitions and additional rewrite or
+instantiation rules can be supplied in brackets.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
@@ -153,8 +158,8 @@ owns metering, rollback, sibling obligations and complete-proof validation.
 
 Import `Waterfall.Observe` explicitly for internal timing, cost traces,
 action recording, cooperative deadlines and exact-plan replay. Observation is
-outside the default import closure. Lemma discovery and the earlier large
-Waterfall implementation are not part of this package.
+outside the default import closure. Auxiliary lemma synthesis and the earlier
+large Waterfall implementation are not part of this package.
 
 ## Build and check
 

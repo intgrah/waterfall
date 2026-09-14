@@ -8,15 +8,16 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header><a class="wordmark" href="./">Waterfall</a><nav aria-label="Main"><a href="./" aria-current="page">Overview</a><a href="examples.html">Examples</a><a href="guide.html">Guide</a><a href="reference.html">Reference</a></nav></header>
+<header><a class="wordmark" href="./">Waterfall</a><nav aria-label="Main"><a href="./" aria-current="page">Overview</a><a href="examples.html">Examples</a></nav></header>
 <main>
 <h1>Waterfall</h1>
+<nav aria-label="On this page"><a href="#usage">Usage</a><a href="#how-it-works">Search</a><a href="#configure">Options</a><a href="#results">Results</a><a href="#install">Lake package</a></nav>
 <p>Waterfall is an ACL2-inspired induction tactic for Lean 4. It searches over structural and functional induction, motive generalization, case analysis and lemma application, with <code>simp_all</code> and <code>grind</code> as leaf solvers.</p>
 <p>The accumulator invariant for an in-order traversal, adapted from Software Foundations’ VFA SearchTree chapter:</p>
 <pre><code>theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
     fastElements t acc = elements t ++ acc := by
-  waterfall [elements, fastElements, List.append_assoc]</code></pre>
-<p>The induction hypotheses must apply at the modified accumulators in recursive calls to <code>fastElements</code>. The user supplies the invariant and append associativity; Waterfall selects an induction scheme and searches for the case proofs.</p>
+  waterfall</code></pre>
+<p>The induction hypotheses must apply at the modified accumulators in recursive calls to <code>fastElements</code>. Waterfall selects an induction scheme and searches for the case proofs. The definitions are found automatically in this module; append associativity is already a standard simplification rule. This proof also succeeds with <code>waterfall (mode := .committed)</code>.</p>
 <details id="tree-proof"><summary>Definitions and complete proof</summary>
 <pre><code>import Waterfall
 
@@ -35,31 +36,51 @@ def fastElements : Tree V → List (Nat × V) → List (Nat × V)
 
 theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
     fastElements t acc = elements t ++ acc := by
-  waterfall [elements, fastElements, List.append_assoc]</code></pre>
+  waterfall</code></pre>
 </details>
-<p id="usage"><code>waterfall [defs, lemmas]</code> supplies rules to simplification, theorem application and the leaf solvers. Recursive definitions also determine functional-induction candidates. <code>waterfall?</code> emits a replacement script through “Try this”, checked by re-elaboration from the original proof state.</p>
+<section id="usage">
+  <h2>Usage</h2>
+  <p><code>waterfall</code> uses local hypotheses, Lean’s registered <code>simp</code> and <code>grind</code> rules, and definitions referenced in the goal or hypotheses that originate in the current module. It also retrieves library theorems by matching their conclusions against the goal. Local hypotheses support both backward application and forward instantiation.</p>
+  <p>An optional rule list, as in <code>waterfall [f, h]</code>, supplies additional definitions and facts to <code>simp_all</code>, <code>grind</code> and backward theorem application. This is useful for imported definitions and lemmas that are not registered for rewriting or instantiation. Supplied recursive definitions also expose candidates for <code>fun_induction</code> and <code>fun_cases</code>. Library theorem application does not search for arbitrary rewrite rules.</p>
+  <p>The <a href="../Docs/Guide.lean">compiled tutorial</a> gives invocation examples; the <a href="examples.html">SF developments</a> show complete proofs.</p>
+  <h3 id="proof-hints">Proof scripts</h3>
+<p><code>waterfall?</code> records the accepted proof path, renders it as tactic syntax, and validates the replacement from the original checkpoint. Backtracked branches are omitted. Leaf calls to <code>simp_all</code> and <code>grind</code> remain in the generated script.</p>
+<p>Operations without a tactic rendering fall back to an explicit proof term. Rendering and re-elaboration add overhead beyond discovery; both modes and parallel execution support hints.</p>
+</section>
 <section id="how-it-works">
   <h2>Search and commitment</h2>
   <p>The aim is ACL2-style automation over Lean goals: recursive simplification and lemma use, followed by induction when those operations no longer suffice. Waterfall delegates local reasoning to Lean’s existing automation and searches over the surrounding proof structure.</p>
   <p>The default policy performs depth-first search over complete proof continuations, with iterative deepening in structural cost and solver strength. A checkpoint includes all sibling obligations and their shared metavariable context, so even a successful local closure remains backtrackable until the entire continuation succeeds.</p>
-  <p><code>(mode := .committed)</code> instead commits to the first locally progressing transition. It exhausts non-inductive processing across the agenda before considering induction, with one permitted return to the original conjecture at that boundary per trial. Discarded alternatives are not recovered by increasing the budget.</p>
-  <p>Both policies use the same inference operations. Candidate ordering, traversal and <a href="reference.html">observation middleware</a> are independent extension points; conjecture synthesis and lemma discovery remain outside the package.</p>
+  <p><code>(mode := .committed)</code> instead commits to the first locally progressing transition. It exhausts non-inductive processing across the agenda before considering induction, with one permitted return to the original conjecture at that boundary per trial. Stalled goals are reconsidered after progress in a sibling, since shared metavariable assignments may have changed. Discarded alternatives are not recovered by increasing the budget.</p>
+  <h3 id="induction">Induction and elimination</h3>
+<p>Induction selection includes the major premise and the motive. Data and evidence induction offer plain and generalized motives, with a further alternative that abstracts fixed indices while retaining their defining equations. Lean’s registered induction and case eliminators are respected.</p>
+<p>Functional induction follows recursive calls occurring in the goal or local context. Generalization is a finite set of candidates derived from the local context, rather than arbitrary synthesis of strengthened invariants. An accumulator invariant such as <code>fast_elements_helper</code> remains a user-supplied theorem statement.</p>
+  <p>Both policies use the same inference operations. Synthesizing auxiliary lemmas remains outside the package.</p>
 </section>
 <section id="configure">
   <h2>Options</h2>
-<pre><code>waterfall (mode := .committed) (effort := 3000)
-  [elements, fastElements, List.append_assoc]</code></pre>
+<pre><code>waterfall (mode := .committed) (effort := 3000)</code></pre>
+  <p>Both <code>waterfall</code> and <code>waterfall?</code> accept individual options or a structure such as <code>(config := {mode := .search, effort := 3000})</code>.</p>
   <div class="table-scroll"><table>
     <thead><tr><th scope="col">Option</th><th scope="col">Default</th><th scope="col">Effect</th></tr></thead>
     <tbody>
       <tr><th scope="row"><code>mode</code></th><td><code>.search</code></td><td><code>.committed</code> disables backtracking after local progress.</td></tr>
       <tr><th scope="row"><code>effort</code></th><td><code>1000</code></td><td>Global budget for dispatched operations and charged restarts, including failed attempts.</td></tr>
       <tr><th scope="row"><code>cpus</code></th><td><code>1</code></td><td>Maximum concurrent depth/strength trials, sharing the total attempt and heartbeat budgets.</td></tr>
+      <tr><th scope="row"><code>attemptHeartbeats</code></th><td><code>20000000</code></td><td>Base raw-heartbeat slice per operation, scaled by trial strength.</td></tr>
+      <tr><th scope="row"><code>lazy</code></th><td><code>true</code></td><td>Generate each candidate batch when reached. False enumerates all batches in a phase up front.</td></tr>
+      <tr><th scope="row"><code>deferChecks</code></th><td><code>false</code></td><td>True postpones applicability checks until a candidate is considered.</td></tr>
       <tr><th scope="row"><code>report</code></th><td><code>false</code></td><td><code>true</code> prints search statistics.</td></tr>
     </tbody>
   </table></div>
-  <p>For the sequential default, increasing <code>effort</code> extends the same trial sequence. Structural depth bounds path cost; strength scales both the leaf solvers’ internal limits and their heartbeat slices. Lean’s enclosing <code>maxHeartbeats</code> and <code>maxRecDepth</code> limits remain authoritative.</p>
-  <p><code>waterfall?</code> accepts the same options. The <a href="reference.html#options">reference</a> includes controls for per-step budgets and candidate enumeration.</p>
+  <h3 id="budgets">Effort and time limits</h3>
+<p><code>effort</code> meters dispatched operations and checkpoint restarts across all branches and trials. Neither failure nor rollback refunds work. Enumeration and ordering consume heartbeats and wall time but are not separate attempts.</p>
+<p>The default schedule begins with depth-zero trials at strengths 1–3, then enumerates depth/strength pairs diagonally. Increasing the sequential effort budget extends this sequence; it does not select a stronger initial trial. Depth limits structural path cost, while strength scales simplifier discharge limits and <code>grind</code> limits such as splitting and instantiation.</p>
+<p><code>attemptHeartbeats</code> is the base raw-heartbeat slice per operation, scaled by trial strength and capped by the enclosing remaining allowance. Lean’s <code>maxHeartbeats</code> uses thousands of raw heartbeats. These limits are independent of the attempt budget and of <code>maxRecDepth</code>.</p>
+  <h3 id="parallel">Parallel execution</h3>
+<pre><code>waterfall (cpus := 4) (effort := 3000)</code></pre>
+<p>This schedules depth/strength trials on at most four dedicated workers. Attempts are charged against a shared budget; the remaining heartbeat allowance is divided among workers. A complete proof is adopted atomically, and losing workers are cancelled cooperatively and joined before return.</p>
+<p>Parallelism is across trials, not within an individual solver call. Scheduling and resource division can change finite-budget coverage as well as latency. <code>cpus := 1</code> retains the sequential path; OS affinity can further restrict concurrency.</p>
 </section>
 <section id="results">
   <h2>Software Foundations</h2>
@@ -81,7 +102,7 @@ theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
 name = "waterfall"
 path = "../Waterfall"</code></pre>
   <p>The package depends only on Lean, targets 4.33.1, and is also tested on 4.30.0. The consumer must use a matching toolchain. Its tactics are exported by <code>import Waterfall</code>.</p>
-  <p><a href="guide.html">User guide</a> · <a href="../Docs/Guide.lean">Lean tutorial</a></p>
+  <p><a href="../Docs/Guide.lean">Lean tutorial</a></p>
 </section>
 </main>
 <footer>Waterfall 0.1 · Lean 4.33.1 · <a href="../LICENSE">Apache-2.0</a> · Private preview</footer>

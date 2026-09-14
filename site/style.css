@@ -35,6 +35,7 @@ table { border-collapse: collapse; width: 100%; font-size: 15px; }
 th, td { padding: 10px 12px 10px 0; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
 th { font-weight: 600; }
 .table-scroll { overflow: auto; }
+#configure th[scope="row"] code { overflow-wrap: anywhere; }
 .scores { max-width: 360px; font-variant-numeric: tabular-nums; }
 footer { border-top: 1px solid var(--line); margin-top: 24px; font-size: 13px; color: var(--muted); }
 :focus-visible { outline: 2px solid var(--link); outline-offset: 4px; }

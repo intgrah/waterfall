@@ -63,12 +63,14 @@ accumulator. The latter avoids intermediate append operations. The key lemma is:
 ```lean
 theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
     fastElements t acc = elements t ++ acc := by
-  waterfall [elements, fastElements, List.append_assoc]
+  waterfall
 ```
 
 Induction has to keep the accumulator general: a recursive call passes a new
-accumulator, rather than the one in the original goal. Append associativity
-connects the implementations. The final theorem specializes this lemma to `[]`.
+accumulator, rather than the one in the original goal. Waterfall discovers the
+definitions in this module; append associativity is already a standard `simp`
+rule. The same proof succeeds with `waterfall (mode := .committed)`. The final
+theorem specializes this lemma to `[]`.
 The equivalence applies to every tree; it needs no search-tree ordering invariant.
 The full definition and helper proof also appear in the README and are compiled
 from that literal code block by `scripts/check_docs.py`.

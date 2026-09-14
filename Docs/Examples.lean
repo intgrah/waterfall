@@ -106,7 +106,7 @@ def fastElements : Tree V → List (Nat × V) → List (Nat × V)
 
 theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
     fastElements t acc = elements t ++ acc := by
-  waterfall [elements, fastElements, List.append_assoc]
+  waterfall
 
 theorem fast_elements_correct (t : Tree V) :
     fastElements t [] = elements t := by

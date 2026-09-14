@@ -3,47 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Reference · Waterfall</title>
-  <meta name="description" content="Waterfall, an induction tactic for Lean. Proof examples, search behavior and configuration.">
-  <link rel="stylesheet" href="style.css">
+  <meta http-equiv="refresh" content="0; url=./#configure">
+  <link rel="canonical" href="./#configure">
+  <title>Options · Waterfall</title>
 </head>
-<body>
-<header><a class="wordmark" href="./">Waterfall</a><nav aria-label="Main"><a href="./">Overview</a><a href="examples.html">Examples</a><a href="guide.html">Guide</a><a href="reference.html" aria-current="page">Reference</a></nav></header>
-<main>
-<h1>Reference</h1>
-<section id="options">
-  <h2>Tactic options</h2>
-  <p>Both <code>waterfall</code> and <code>waterfall?</code> accept individual options or a structure such as <code>(config := {mode := .search, effort := 3000})</code>.</p>
-<div class="table-scroll"><table><thead><tr><th>Option</th><th>Default</th><th>Behavior</th></tr></thead><tbody><tr><td><code>mode</code></td><td><code>.search</code></td><td>Backtracking search or ACL2-inspired <code>.committed</code>.</td></tr><tr><td><code>cpus</code></td><td>1</td><td>Maximum concurrent workers, with a shared total budget.</td></tr><tr><td><code>effort</code></td><td>1000</td><td>Number of attempts across all trials, including failures.</td></tr><tr><td><code>attemptHeartbeats</code></td><td>20000000</td><td>Base raw heartbeat slice per operation; trial strength scales it.</td></tr><tr><td><code>lazy</code></td><td>true</td><td>True generates a batch when search reaches it; false generates all batches in a phase up front.</td></tr><tr><td><code>deferChecks</code></td><td>false</td><td>True postpones applicability checks until a candidate is considered.</td></tr><tr><td><code>report</code></td><td>false</td><td>True prints search statistics.</td></tr></tbody></table></div>
-</section>
-<section>
-  <h2>Hooks</h2>
-  <p><code>Waterfall.run</code> takes a <code>Config</code>, supplied rules and <code>Hooks</code>. The hooks separate traversal, candidate ordering, path costs and the depth/strength schedule from inference. For example, the default policy can retain its inference behavior with a different trial prefix:</p>
-<pre><code>example (P : Prop) (h : P) : P := by
-  run_tac discard &lt;| Waterfall.run {} #[]
-    { Waterfall.Mode.search.hooks with
-      trials := Waterfall.diagonalTrials 1 }</code></pre>
-  <p><code>trials</code> enumerates depth/strength pairs. <code>order</code> returns a permutation of stable candidate selectors, checked by the engine. <code>cost</code> assigns path costs subject to structural lower bounds; <code>extraMoves</code> appends inference candidates without changing existing selectors. Goal-aware ordering and cost callbacks run in the input context under proof-state rollback.</p>
-</section>
-<section>
-  <h2>Policies and proof state</h2>
-  <p>A <code>Node</code> contains a compatible saved Lean state, the conjunctive goal agenda, per-goal ancestry, the retained proof path and typed policy state. <code>SearchPolicy.choose</code> returns a lazy sequence of successor checkpoints; the policy state can carry an explicit frontier.</p>
-  <p><code>Space.expand</code> supplies metered transitions for a selected goal while preserving its siblings. <code>Space.restart</code> restores a complete checkpoint with replacement policy state and charges one attempt. Traversal never merges independently proved siblings with incompatible metavariable assignments.</p>
-  <p><code>Choices.first</code> implements commitment; <code>filter</code> restricts successors; <code>collect</code> materializes them for explicit frontier management. Materialization executes the transitions and incurs their metered cost.</p>
-  <p>The <a href="../Tests/SearchPolicy.lean">policy tests</a> include FIFO and scored selection. Fairness depends on the policy and trial enumeration. Proof-state rollback does not undo external IO effects in callbacks.</p>
-</section>
-<section>
-  <h2>Workers</h2>
-  <p><code>Waterfall.Parallel.run</code> schedules trials with isolated Lean state and worker-local observers. Only a complete proof is adopted; cancellation and joining account for work spent by losing workers.</p>
-  <p>The <a href="../docs/API.md#parallel-execution">API notes</a> describe the budget accounting and callback initialization.</p>
-</section>
-<section id="observation">
-  <h2>Timing and replay</h2>
-  <p><code>Waterfall.Observe</code> is an optional import. <code>capture</code> records inclusive and exclusive timings, raw heartbeats and the accepted plan. <code>Control</code> can reduce per-operation limits or impose a cooperative deadline.</p>
-  <p><code>replay</code> interprets the retained plan, validating operation selectors, agenda positions and generated-child counts against the recording. It requires the same source, rules and hooks, and rejects unresolved original obligations. This is exact-plan replay rather than reconstruction by another search.</p>
-  <p><a href="../Tests/Observe.lean">Observation examples</a> · <a href="../docs/API.md">API notes</a> · <a href="../Waterfall/Protocol.lean">Protocol source</a></p>
-</section>
-</main>
-<footer>Waterfall 0.1 · Lean 4.33.1 · <a href="../LICENSE">Apache-2.0</a> · Private preview</footer>
-</body>
+<body><p>Tactic options are documented on the <a href="./#configure">main Waterfall page</a>.</p></body>
 </html>
