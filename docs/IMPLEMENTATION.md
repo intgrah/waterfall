@@ -1,6 +1,6 @@
 # Reading the proof engine
 
-Start with `movesFor` in [Core.lean](../Waterfall/Core.lean). Its eight cases are
+Start with `movesFor` in [Core.lean](../waterfall/Core.lean). Its eight cases are
 the proof vocabulary. Each calls a named generator that **proposes** proof steps;
 it does not yet apply them. A `Move` holds the deferred inference, its intrinsic
 cost, and semantic metadata for scheduling. Array order matters: recorded plans
@@ -54,25 +54,25 @@ unresolved metavariables or direct sorry terms. Lean checks the declarations.
 
 ## Where the other pieces belong
 
-[Protocol.lean](../Waterfall/Protocol.lean) defines the shared data and callbacks:
+[Protocol.lean](../waterfall/Protocol.lean) defines the shared data and callbacks:
 resource `Config`, spent-work `Stats`, proof `Move`s and `Selection`s, pending
 `Job`s, compatible `Node`s, and the policy's `Space`. Moving Config and Stats here
 keeps these interfaces together; it does not reduce the total implementation.
 
-The default policy follows every continuation in order. [Committed.lean](../Waterfall/Committed.lean)
+The default policy follows every continuation in order. [Committed.lean](../waterfall/Committed.lean)
 uses the same operations with first-progress commitment, ordinary work before
 induction, and one return to the original conjecture per trial. It deliberately
-discards alternatives. [Parallel.lean](../Waterfall/Parallel.lean) distributes
+discards alternatives. [Parallel.lean](../waterfall/Parallel.lean) distributes
 depth/strength trials of either policy across isolated workers; it shares work
 accounting and adopts only a whole completed proof. These modules do not add
 inference rules.
 
-[Observe.lean](../Waterfall/Observe.lean) adds optional timing, resource control,
-recording, and exact-plan replay through middleware. [Tactic.lean](../Waterfall/Tactic.lean)
+[Observe.lean](../waterfall/Observe.lean) adds optional timing, resource control,
+recording, and exact-plan replay through middleware. [Tactic.lean](../waterfall/Tactic.lean)
 parses the public options. The proof engine owns rollback and acceptance; IO
 counters and other external callback effects cannot be rolled back.
 
-[Suggestions.lean](../Waterfall/Suggestions.lean) records only the accepted path,
+[Suggestions.lean](../waterfall/Suggestions.lean) records only the accepted path,
 renders ordinary proof commands, and checks the printed text from the original
 checkpoint. Tactic adapters share existing commands through optional metadata;
 Meta operations have frontend recipes for induction, cases and constructors.

@@ -1,12 +1,12 @@
-# Waterfall
+# waterfall
 
-Small, configurable proof search for inductive Lean goals. Waterfall combines
+Small, configurable proof search for inductive Lean goals. waterfall combines
 simplification, theorem application, case analysis and induction in one search
 engine. It depends only on Lean **4.33.1** and is licensed under Apache-2.0,
 the same license as Lean.
 
 ```lean
-import Waterfall
+import waterfall
 
 inductive Tree (V : Type) where
   | empty
@@ -26,15 +26,15 @@ theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
   waterfall
 ```
 
-This is **Waterfall 0.1** (`0.1.0` in Lake), available from
-[samth/Waterfall](https://github.com/samth/Waterfall).
-[Website and documentation](https://samth.github.io/Waterfall/) ·
-[CI](https://github.com/samth/Waterfall/actions/workflows/ci.yml).
+This is **waterfall 0.1** (`0.1.0` in Lake), available from
+[samth/waterfall](https://github.com/samth/waterfall).
+[Website and documentation](https://samth.github.io/waterfall/) ·
+[CI](https://github.com/samth/waterfall/actions/workflows/ci.yml).
 The website is generated from [editable Markdown files](site/README.md).
 There is no tagged release or Reservoir listing yet.
 
 The example above proves that an accumulator-based tree traversal returns the
-same elements as a traversal using list append. Waterfall finds an induction
+same elements as a traversal using list append. waterfall finds an induction
 proof that covers the recursive calls with changed accumulators. It is adapted
 from Software Foundations' VFA SearchTree chapter; all definitions needed to run it are included.
 No explicit rule list is needed: the definitions are found in the current module,
@@ -54,7 +54,7 @@ Lean theorem/example goals**. Its VFA portion has **509 goals across 15 chapters
 | VFA | 509 | 390 | 354 |
 | Total | 2,190 | 1,455 | 1,447 |
 
-These full-corpus results were measured at Waterfall **6ff4eb9** on Lean
+These full-corpus results were measured at waterfall **6ff4eb9** on Lean
 **4.30.0**, at effort **1,000** with **200M raw search heartbeats**. Preceding helper
 facts are supplied as assumptions; this is a development corpus. The run predates
 subsequent correctness fixes and the Lean 4.33.1 upgrade. The current 0.1 candidate
@@ -69,13 +69,13 @@ For small examples you can read and run, see [Docs/Examples.lean](Docs/Examples.
 
 - **LF / Imp:** prove that eliminating `0 + e` preserves expression evaluation.
 - **VFA / Sort:** prove insertion preserves an inductive sortedness predicate;
-  combine Waterfall proofs with a short explicit permutation argument to verify
+  combine waterfall proofs with a short explicit permutation argument to verify
   insertion sort.
 - **VFA / SearchTree:** prove accumulator-based tree traversal equivalent to
   the simple implementation, as shown above.
 
 These standalone examples prove their own helper lemmas and import only
-Waterfall. They run in `lake test`; [the walkthrough](docs/EXAMPLES.md) explains
+waterfall. They run in `lake test`; [the walkthrough](docs/EXAMPLES.md) explains
 the proof structure and supplied lemmas.
 
 ## Install with Lake
@@ -85,24 +85,24 @@ A `lakefile.toml` dependency can use the public Git repository:
 ```toml
 [[require]]
 name = "waterfall"
-git = "https://github.com/samth/Waterfall.git"
+git = "https://github.com/samth/waterfall.git"
 rev = "main"
 ```
 
 The project needs a matching `lean-toolchain`; `lake update` resolves the dependency,
-and `import Waterfall` exports the tactics. Lake records the chosen commit in
-`lake-manifest.json`. A local checkout can use `path = "../Waterfall"` in place of
+and `import waterfall` exports the tactics. Lake records the chosen commit in
+`lake-manifest.json`. A local checkout can use `path = "../waterfall"` in place of
 `git` and `rev`.
 
-Waterfall targets Lean 4.33.1; CI also checks compatibility with Lean 4.30.0.
+waterfall targets Lean 4.33.1; CI also checks compatibility with Lean 4.30.0.
 [Release preparation](docs/RELEASE.md) records the remaining tagging and registry work.
 
 ## Use and configure
 
 ```lean
-import Waterfall
+import waterfall
 
-namespace WaterfallReadme
+namespace waterfallReadme
 
 def append : List Nat → List Nat → List Nat
   | [], ys => ys
@@ -117,7 +117,7 @@ example (xs : List Nat) : append xs [] = xs := by
 example (P : Prop) (h : P) : P := by
   waterfall (config := {mode := .search, effort := 1000, lazy := true})
 
-end WaterfallReadme
+end waterfallReadme
 ```
 
 The default `.search` mode backtracks over whole proof continuations, including
@@ -131,7 +131,7 @@ stronger operations. Lean's enclosing resource limits still apply. Use
 `waterfall?` for a checked “Try this” editor hint that replaces the invocation
 with ordinary Lean proof commands. Use `(report := true)` for search statistics.
 Local hypotheses, registered `simp` and `grind` rules, and definitions from the
-current module are used automatically. Waterfall also retrieves library theorems
+current module are used automatically. waterfall also retrieves library theorems
 for backward application. Imported definitions and additional rewrite or
 instantiation rules can be supplied in brackets.
 
@@ -158,15 +158,15 @@ CPU uses the existing sequential path. See [parallel execution](docs/API.md#para
 
 ## Extend it
 
-`Waterfall.run` accepts `Config`, supplied rules and `Hooks`. A `SearchPolicy`
+`waterfall.run` accepts `Config`, supplied rules and `Hooks`. A `SearchPolicy`
 selects a lazy sequence of compatible proof checkpoints; its typed state can
 hold a frontier. Goal-aware callbacks configure ordering and costs. The engine
 owns metering, rollback, sibling obligations and complete-proof validation.
 
-Import `Waterfall.Observe` explicitly for internal timing, cost traces,
+Import `waterfall.Observe` explicitly for internal timing, cost traces,
 action recording, cooperative deadlines and exact-plan replay. Observation is
 outside the default import closure. Auxiliary lemma synthesis and the earlier
-large Waterfall implementation are not part of this package.
+large waterfall implementation are not part of this package.
 
 ## Build and check
 
@@ -195,7 +195,7 @@ The tests include backtracking, shared witnesses, exhaustion, commitment,
 configuration, checkpoint recovery and recorded-plan replay. Proofs are checked
 by Lean; successful return requires all original obligations to be complete.
 
-Waterfall is strongest on inductive data with usable recursive definitions and
+waterfall is strongest on inductive data with usable recursive definitions and
 helper lemmas. It remains bounded automation: missing lemmas, difficult mutual
 induction, and unsuitable operation ordering can prevent closure. It is inspired
 by ACL2 and proof-planning research; it is not an implementation of all ACL2

@@ -21,7 +21,7 @@ waterfall [eval, optimize]
 The difficulty is the interaction between recursive evaluation and the special
 pattern `plus (num 0) b`. The original explicit proof inducts over the expression
 and splits the left operand and its numeral in the addition case. The example
-lets Waterfall select and combine the proof operations. It retains addition,
+lets waterfall select and combine the proof operations. It retains addition,
 natural subtraction, and multiplication from the source's variable-free language.
 
 ## Insertion sort preserves order and contents
@@ -43,9 +43,9 @@ of `insert`'s comparison. Once it is proved, `sort_sorted` uses it as a supplied
 lemma. `insert_perm` proves that insertion preserves the multiset of elements.
 
 The example keeps the short induction and permutation composition in `sort_perm`
-explicit. Plain Waterfall and an induction followed by Waterfall did not close
+explicit. Plain waterfall and an induction followed by waterfall did not close
 that step at their tested default budgets. This is an example of mixing a small
-manual argument with automation, not a claim that Waterfall proves every step
+manual argument with automation, not a claim that waterfall proves every step
 of sorting without guidance. `sort_correct` then combines both properties:
 
 ```lean
@@ -67,7 +67,7 @@ theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
 ```
 
 Induction has to keep the accumulator general: a recursive call passes a new
-accumulator, rather than the one in the original goal. Waterfall discovers the
+accumulator, rather than the one in the original goal. waterfall discovers the
 definitions in this module; append associativity is already a standard `simp`
 rule. The same proof succeeds with `waterfall (mode := .committed)`. The final
 theorem specializes this lemma to `[]`.

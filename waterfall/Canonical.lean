@@ -16,7 +16,7 @@ performed while taking a snapshot.
 
 open Lean Meta Elab Tactic
 
-namespace Waterfall.Canonical
+namespace waterfall.Canonical
 
 private def node (tag : String) (fields : Array Json := #[]) : Json :=
   .arr (#[.str tag] ++ fields)
@@ -170,4 +170,4 @@ def snapshot (goals : List MVarId) : TacticM String := do
   Core.checkSystem "waterfall canonical snapshot"
   return text
 
-end Waterfall.Canonical
+end waterfall.Canonical

@@ -1,5 +1,5 @@
-import Waterfall.Core
-import Waterfall.Canonical
+import waterfall.Core
+import waterfall.Canonical
 
 /-!
 Opt-in experiment middleware and exact-plan replay. The proof engine neither
@@ -8,7 +8,7 @@ All mutable observation state lives outside Lean's rollback snapshots.
 -/
 
 open Lean Meta Elab Tactic
-namespace Waterfall.Observe
+namespace waterfall.Observe
 
 structure Cost where
   nanos : Nat := 0
@@ -156,7 +156,7 @@ def capture (cfg : Config) (rules : Array (TSyntax `term)) (key : String)
   let recorder ← Recorder.create costs plans
   let input ← if plans then Canonical.snapshot (← getUnsolvedGoals) else pure ""
   let error ← tryCatchRuntimeEx (do
-    discard <| Waterfall.run cfg rules (recorder.hooks control hooks)
+    discard <| waterfall.run cfg rules (recorder.hooks control hooks)
     pure none) fun ex => withTheReader Core.Context (fun c => { c with maxHeartbeats := 0 }) do
       return some (← ex.toMessageData.toString)
   -- Assemble data after a failed run without renewing any proof computation.
@@ -232,4 +232,4 @@ def replay (plan : Plan) (rules : Array (TSyntax `term)) (key : String)
       saved.restore true
       throw ex
 
-end Waterfall.Observe
+end waterfall.Observe

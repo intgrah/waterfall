@@ -1,4 +1,4 @@
-# Checked proof hints for Waterfall
+# Checked proof hints for waterfall
 
 `waterfall?` now offers Lean's standard **Try this** hint and editor replacement.
 Clicking it replaces the entire invocation, including options and supplied
@@ -7,7 +7,7 @@ Use `(report := true)` separately for search statistics.
 
 ## Results on all 111 goals
 
-| Mode | Ordinary Waterfall | Successful hints | Fresh replacements accepted |
+| Mode | Ordinary waterfall | Successful hints | Fresh replacements accepted |
 |---|---:|---:|---:|
 | Search | 98/111 | 98/111 | 98/98 |
 | Committed | 72/111 | 72/111 | 72/72 |
@@ -18,7 +18,7 @@ compiled in fresh Lean processes**, with no hint-emission or replacement
 failures. The remaining goals fail during search at this budget. Every target
 started its internal timer; no outcome was inferred from a missing measurement.
 
-The scripts contain no Waterfall or plan-interpreter call. They follow the
+The scripts contain no waterfall or plan-interpreter call. They follow the
 winning path, omitting abandoned search branches. They range from 3
 to 91 displayed lines; 2 use the checked explicit-term fallback.
 Further shortening is possible.
@@ -71,7 +71,7 @@ final hint run. The final run executes all 222 question-mark cases again.
 
 The inference engine remains **499 noncomment lines**. Core plus protocol is
 622; the complete default import is 1051, including the separate 200-line
-[hint frontend](../../../Waterfall/Suggestions.lean). No inference operation,
+[hint frontend](../../../waterfall/Suggestions.lean). No inference operation,
 search policy or external dependency was added. Optional metadata describes a
 functional operation's subject and shares a tactic adapter's existing command.
 

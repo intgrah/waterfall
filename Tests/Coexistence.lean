@@ -1,5 +1,5 @@
 import Tests.ForeignTrace
-import Waterfall
+import waterfall
 
 -- Initialization of both packages must succeed, before any tactic can run.
 example : True := by waterfall

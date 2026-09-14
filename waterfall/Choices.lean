@@ -1,4 +1,4 @@
-import Waterfall.Protocol
+import waterfall.Protocol
 
 /-!
 Optional combinators for the same lazy choice interface used by the engine.
@@ -7,7 +7,7 @@ The visitor may perform a recursive search, collect frontier entries, or simply
 inspect transitions. These combinators introduce no proof or scheduling rules.
 -/
 
-namespace Waterfall.Choices
+namespace waterfall.Choices
 
 /-- Commit to the first locally successful transition, even when its entire
 continuation fails. An inapplicable proposal is never yielded by the engine.
@@ -37,9 +37,9 @@ def collect (choices : Choices α) : Lean.Elab.Tactic.TacticM (Array α) := do
   discard <| choices fun value => do values.modify (·.push value); return false
   values.get
 
-end Waterfall.Choices
+end waterfall.Choices
 
-namespace Waterfall.Node
+namespace waterfall.Node
 
 /-- Replace traversal bookkeeping while retaining the complete proof checkpoint.
 For example, a FIFO frontier can store `Node Unit` and attach its updated queue
@@ -47,4 +47,4 @@ only when the traversal selects that entry. -/
 def mapState (f : α → β) (node : Node α) : Node β :=
   { saved := node.saved, jobs := node.jobs, state := f node.state, plan := node.plan }
 
-end Waterfall.Node
+end waterfall.Node

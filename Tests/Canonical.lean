@@ -1,9 +1,9 @@
-import Waterfall
-import Waterfall.Canonical
+import waterfall
+import waterfall.Canonical
 
-open Lean Meta Elab Tactic Waterfall
+open Lean Meta Elab Tactic waterfall
 
-namespace WaterfallCanonicalTest
+namespace waterfallCanonicalTest
 
 private def equal (label left right : String) : TacticM Unit :=
   unless left == right do throwError "canonical guard changed under {label}"
@@ -130,4 +130,4 @@ elab "check_canonical_read_only" : tactic => withMainContext do
 
 example : True := by check_canonical_read_only
 
-end WaterfallCanonicalTest
+end waterfallCanonicalTest

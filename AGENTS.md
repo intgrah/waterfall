@@ -1,4 +1,4 @@
-# Waterfall contributor guide
+# waterfall contributor guide
 
 This package contains the small proof engine, its public configured tactic,
 search policies, and optional observation/replay. It depends only on Lean.
@@ -16,6 +16,6 @@ search policies, and optional observation/replay. It depends only on Lean.
 - No `unsafe`, admitted test proofs, legacy engine, or private benchmark corpus.
 - Commit completed stages. Publish, push, tag or deploy only when authorized.
 
-The repository is public at samth/Waterfall. GitHub Actions deploys the Markdown
-website to https://samth.github.io/Waterfall/ after checks on main pass.
+The repository is public at samth/waterfall. GitHub Actions deploys the Markdown
+website to https://samth.github.io/waterfall/ after checks on main pass.
 Version tags and Reservoir registration remain pending.

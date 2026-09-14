@@ -1,7 +1,7 @@
 import Tests.Capabilities
-import Waterfall.Observe
+import waterfall.Observe
 
-open Lean Meta Elab Tactic Waterfall Waterfall.Observe
+open Lean Meta Elab Tactic waterfall waterfall.Observe
 
 elab "compare_modes" : tactic => do
   let saved ← Tactic.saveState

@@ -1,4 +1,4 @@
-import Waterfall
+import waterfall
 
 open Lean Elab Tactic Meta
 
@@ -34,7 +34,7 @@ elab "check_hint " expected:str " => " tac:tactic : tactic => withEnableInfoTree
   try
     initial.restore true
     Term.withoutErrToSorry <| withoutRecover <| evalTactic stx
-    Waterfall.checkComplete roots
+    waterfall.checkComplete roots
     unless (← getUnsolvedGoals).isEmpty do throwError "editor replacement left goals"
   finally
     winning.restore true
@@ -76,18 +76,18 @@ example (f g : Nat → Nat) (h : ∀ x, f x = g x) : f = g := by
     let initial ← saveState
     let roots ← getUnsolvedGoals
     evalTactic (← `(tactic| grind))
-    let script ← Waterfall.Suggestions.compile initial roots #[] #[]
+    let script ← waterfall.Suggestions.compile initial roots #[] #[]
     unless script.usedTerm do throwError "expected proof-term fallback"
     initial.restore true
     Term.withoutErrToSorry <| withoutRecover <| evalTactic script.tactic
-    Waterfall.checkComplete roots
+    waterfall.checkComplete roots
 
 -- A policy may select any sibling. case' must preserve the relative order of
 -- the other goals; rotation alone is not the engine's agenda operation.
 elab "last_goal_hint" : tactic => do
-  let hooks : Waterfall.Hooks := { policy := ⟨Unit, (), fun space =>
+  let hooks : waterfall.Hooks := { policy := ⟨Unit, (), fun space =>
     space.expand (space.current.jobs.length - 1) #[] (fun _ => true)⟩ }
-  discard <| Waterfall.Suggestions.run (← getRef) #[] hooks (fun h => Waterfall.run {} #[] h)
+  discard <| waterfall.Suggestions.run (← getRef) #[] hooks (fun h => waterfall.run {} #[] h)
 
 example (P Q R : Prop) (hp : P) (hq : Q) (hr : R) : P ∧ Q ∧ R := by
   refine ⟨?first, ?middle, ?last⟩
@@ -96,11 +96,11 @@ example (P Q R : Prop) (hp : P) (hq : Q) (hr : R) : P ∧ Q ∧ R := by
 -- Scaled solver configurations must print ordinary field names and numerals,
 -- without quotation hygiene marks or hidden elaborator references.
 elab "strong_hint " label:str : tactic => do
-  let hooks : Waterfall.Hooks := {
+  let hooks : waterfall.Hooks := {
     trials := fun _ => #[(4, 2)]
     policy := ⟨Unit, (), fun space =>
       space.expand 0 #[] (fun c => c.move.label == label.getString)⟩ }
-  discard <| Waterfall.Suggestions.run (← getRef) #[] hooks (fun h => Waterfall.run {} #[] h)
+  discard <| waterfall.Suggestions.run (← getRef) #[] hooks (fun h => waterfall.run {} #[] h)
 
 example (P Q : Prop) (h : P ∧ Q) : Q ∧ P := by
   check_hint "maxSteps" => strong_hint "simp"
@@ -121,13 +121,13 @@ inductive HintChain : Nat → Prop where
   | step : HintChain n → HintChain (n + 1)
 
 elab "indexed_hint" : tactic => do
-  let hooks : Waterfall.Hooks := {
+  let hooks : waterfall.Hooks := {
     trials := fun _ => #[(2, 1)]
     policy := ⟨Unit, (), fun space =>
       if space.current.plan.isEmpty then
         space.expand 0 #[#[.induction]] (fun c => c.move.label.endsWith "abstract indices")
       else space.expand 0 #[] (fun _ => true)⟩ }
-  discard <| Waterfall.Suggestions.run (← getRef) #[] hooks (fun h => Waterfall.run {} #[] h)
+  discard <| waterfall.Suggestions.run (← getRef) #[] hooks (fun h => waterfall.run {} #[] h)
 
 example (n : Nat) (h : HintChain (n + 1)) : True := by
   check_hint "generalize" => indexed_hint
@@ -136,13 +136,13 @@ example (n : Nat) (h : HintChain (n + 1)) : True := by
 -- rule applications must not require delaborating the enclosing proof term.
 elab "rule_hint" : tactic => do
   let rules := #[← `(term| And.intro)]
-  let hooks : Waterfall.Hooks := {
+  let hooks : waterfall.Hooks := {
     trials := fun _ => #[(2, 1)]
     policy := ⟨Unit, (), fun space =>
       if space.current.plan.isEmpty then
         space.expand 0 #[#[.rules]] (fun c => c.move.label == "apply rule")
       else space.expand 0 #[] (fun _ => true)⟩ }
-  discard <| Waterfall.Suggestions.run (← getRef) rules hooks (fun h => Waterfall.run {} rules h)
+  discard <| waterfall.Suggestions.run (← getRef) rules hooks (fun h => waterfall.run {} rules h)
 
 example (P Q : Prop) (hp : P) (hq : Q) : P ∧ Q := by
   check_hint "apply And.intro" => rule_hint
@@ -150,12 +150,12 @@ example (P Q : Prop) (hp : P) (hq : Q) : P ∧ Q := by
 -- A forward step prints the instantiated local fact, including constructor
 -- arguments, rather than delaborating the complete proof built after it.
 elab "forward_hint" : tactic => do
-  let hooks : Waterfall.Hooks := {
+  let hooks : waterfall.Hooks := {
     trials := fun _ => #[(2, 1)]
     policy := ⟨Unit, (), fun space =>
       if space.current.plan.isEmpty then space.expand 0 #[#[.forward]] (fun _ => true)
       else space.expand 0 #[] (fun _ => true)⟩ }
-  discard <| Waterfall.Suggestions.run (← getRef) #[] hooks (fun h => Waterfall.run {} #[] h)
+  discard <| waterfall.Suggestions.run (← getRef) #[] hooks (fun h => waterfall.run {} #[] h)
 
 example (P : Nat → Prop) (h : ∀ n, P n) (n : Nat) : P (n + 1) := by
   check_hint "have derived" => forward_hint

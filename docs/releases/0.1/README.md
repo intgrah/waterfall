@@ -1,4 +1,4 @@
-# Waterfall 0.1 preparation
+# waterfall 0.1 preparation
 
 The selected release is **0.1**, represented as `0.1.0` in Lake. The default
 toolchain is Lean **4.33.1**, the latest stable release checked on 2026-09-12.
@@ -33,18 +33,18 @@ in three self-contained developments:
 1. LF Imp: removing `0 + e` preserves expression evaluation.
 2. VFA Sort: insertion preserves sortedness and permutation, then those facts
    establish insertion-sort correctness. The short `sort_perm` composition is
-   explicit; the other proof blocks use Waterfall.
+   explicit; the other proof blocks use waterfall.
 3. VFA SearchTree: accumulator-based traversal agrees with append-based
    traversal, first for an arbitrary accumulator and then for `[]`.
 
 All definitions and helper lemmas needed by these examples are included. They
-import only Waterfall and contain no admitted proofs. The original chapters are
+import only waterfall and contain no admitted proofs. The original chapters are
 linked in the file. The README's complete tree example is separately compiled
 from its literal code fence. `lake test` compiles all eight example theorems,
 and `leanchecker Docs.Examples` independently checks the resulting declarations.
 
-During preparation, `sort_perm` failed both with plain Waterfall (1,000
-attempts) and with explicit induction followed by Waterfall at the ambient
+During preparation, `sort_perm` failed both with plain waterfall (1,000
+attempts) and with explicit induction followed by waterfall at the ambient
 resource limit. Its short direct permutation composition is retained rather
 than tuning the engine for an example. These development observations are not
 new benchmark coverage measurements.

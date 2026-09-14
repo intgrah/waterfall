@@ -1,7 +1,7 @@
-import Waterfall
-import Waterfall.Observe
+import waterfall
+import waterfall.Observe
 
-open Lean Meta Elab Tactic Waterfall Waterfall.Observe
+open Lean Meta Elab Tactic waterfall waterfall.Observe
 namespace ExhaustedBatchFixture
 
 -- Three five-action root trials precede the depth-one trial on False. Action16

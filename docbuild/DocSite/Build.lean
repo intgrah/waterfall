@@ -41,13 +41,13 @@ partial def copyTree (source target : FilePath) : IO Unit := do
 /-- Works from the repository root, docbuild/, or an explicitly supplied directory. -/
 partial def findRoot (directory : FilePath) : IO FilePath := do
   let directory ← IO.FS.realPath directory
-  if (← (directory / "Waterfall.lean").pathExists) &&
+  if (← (directory / "waterfall.lean").pathExists) &&
       (← (directory / "site/index.md").pathExists) then return directory
   match directory.parent with
   | some parent =>
-    if parent == directory then throw <| IO.userError "Waterfall repository not found"
+    if parent == directory then throw <| IO.userError "waterfall repository not found"
     findRoot parent
-  | none => throw <| IO.userError "Waterfall repository not found"
+  | none => throw <| IO.userError "waterfall repository not found"
 
 /-- Only dist/site is replaced. No generated HTML is checked into the repository. -/
 def build (root : FilePath) : IO Unit := do
@@ -69,7 +69,7 @@ def build (root : FilePath) : IO Unit := do
   for name in #["style.css", "guide.html", "reference.html"] do
     copyTree (source / name) (output / name)
   IO.FS.createDirAll (output / "source")
-  for name in #["Docs", "Waterfall", "Tests", "docs", "LICENSE"] do
+  for name in #["Docs", "waterfall", "Tests", "docs", "LICENSE"] do
     copyTree (root / name) (output / "source" / name)
   IO.println s!"Built {output / "index.html"}"
 

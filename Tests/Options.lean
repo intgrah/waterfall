@@ -1,6 +1,6 @@
-import Waterfall
+import waterfall
 
-open Waterfall Lean Elab Tactic
+open waterfall Lean Elab Tactic
 
 example (P : Prop) (h : P) : P := by waterfall
 example (P : Prop) (h : P) : P := by waterfall (mode := .search)
@@ -16,13 +16,13 @@ example (P : Prop) (h : P) : P := by
 -- General callback configuration uses the same mode hooks and engine API.
 example (P : Prop) (h : P) : P := by
   fail_if_success run_tac
-    discard <| Waterfall.run {} #[] { Mode.search.hooks with
+    discard <| waterfall.run {} #[] { Mode.search.hooks with
       policy := ⟨Unit, (), fun _ _ => pure false⟩ }
-  run_tac discard <| Waterfall.run {} #[] { Mode.search.hooks with
+  run_tac discard <| waterfall.run {} #[] { Mode.search.hooks with
     trials := diagonalTrials 1 }
 
 example (P : Prop) (h : P) : P := by
   fail_if_success run_tac
-    discard <| Waterfall.run {} #[] { Mode.search.hooks with
+    discard <| waterfall.run {} #[] { Mode.search.hooks with
       trials := fun _ => #[(0, 0)] }
   waterfall

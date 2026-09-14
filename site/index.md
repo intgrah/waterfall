@@ -1,4 +1,4 @@
-# Waterfall
+# waterfall
 
 <nav aria-label="On this page">
 
@@ -6,7 +6,7 @@
 
 </nav>
 
-Waterfall is an ACL2-inspired induction tactic for Lean 4. It searches over structural and
+waterfall is an ACL2-inspired induction tactic for Lean 4. It searches over structural and
 functional induction, motive generalization, case analysis and lemma application, with
 `simp_all` and `grind` as leaf solvers.
 
@@ -20,7 +20,7 @@ theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
 ```
 
 The induction hypotheses must apply at the modified accumulators in recursive calls to
-`fastElements`. Waterfall selects an induction scheme and searches for the case proofs. The
+`fastElements`. waterfall selects an induction scheme and searches for the case proofs. The
 definitions are found automatically in this module; append associativity is already a standard
 simplification rule. This proof also succeeds with `waterfall (mode := .committed)`.
 
@@ -29,7 +29,7 @@ simplification rule. This proof also succeeds with `waterfall (mode := .committe
 <summary>Definitions and complete proof</summary>
 
 ```lean
-import Waterfall
+import waterfall
 
 inductive Tree (V : Type) where
   | empty
@@ -87,7 +87,7 @@ re-elaboration add overhead beyond discovery; both modes and parallel execution 
 ## Search and commitment
 
 The aim is ACL2-style automation over Lean goals: recursive simplification and lemma use,
-followed by induction when those operations no longer suffice. Waterfall delegates local
+followed by induction when those operations no longer suffice. waterfall delegates local
 reasoning to Lean’s existing automation and searches over the surrounding proof structure.
 
 The default policy performs depth-first search over complete proof continuations, with iterative
@@ -200,8 +200,8 @@ full Software Foundations run covered all 2,190 eligible goals:
 
 </div>
 
-Measured at [Waterfall
-6ff4eb9](https://github.com/samth/Waterfall/commit/6ff4eb97746a772f9ec353923343bd22c1805630) on
+Measured at [waterfall
+6ff4eb9](https://github.com/samth/waterfall/commit/6ff4eb97746a772f9ec353923343bd22c1805630) on
 Lean 4.30.0, with effort 1,000 and 200M raw search heartbeats. Preceding helper facts are
 supplied as assumptions; this is a development corpus. The run predates subsequent correctness
 fixes and the Lean 4.33.1 upgrade. The current 0.1 candidate has not been rerun on the full
@@ -222,18 +222,18 @@ discharge.
 
 ## Lake package
 
-Waterfall 0.1.0 is available from [samth/Waterfall](https://github.com/samth/Waterfall).
+waterfall 0.1.0 is available from [samth/waterfall](https://github.com/samth/waterfall).
 A Lean project's `lakefile.toml` can depend on the Git repository:
 
 ```toml
 [[require]]
 name = "waterfall"
-git = "https://github.com/samth/Waterfall.git"
+git = "https://github.com/samth/waterfall.git"
 rev = "main"
 ```
 
 The package depends only on Lean, targets 4.33.1, and is also tested on 4.30.0. The consumer
-must use a matching toolchain. Its tactics are exported by `import Waterfall`.
+must use a matching toolchain. Its tactics are exported by `import waterfall`.
 Lake records the resolved Git commit in `lake-manifest.json`. There is no tagged
 release or Reservoir listing yet.
 

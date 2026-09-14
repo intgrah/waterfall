@@ -5,15 +5,15 @@ is a compiled tutorial. The library exports the following small interfaces.
 
 | Module | Responsibility |
 | --- | --- |
-| `Waterfall` / `Waterfall.Tactic` | `waterfall`, `waterfall?`, `Mode`, `Options` |
-| `Waterfall.Core` | `run`, engine transitions and root validation |
-| `Waterfall.Protocol` | `Config`, `Stats`, `Move`, `Candidate`, `Job`, `Node`, `Space`, `SearchPolicy`, `Hooks` |
-| `Waterfall.Choices` | Generic lazy selection, filtering, collection and commitment |
-| `Waterfall.Parallel` | Isolated concurrent trials, shared work accounting and cancellation |
-| `Waterfall.Committed` | ACL2-inspired callbacks over the shared engine |
-| `Waterfall.Suggestions` | Checked standalone scripts and editor hints from retained paths |
-| `Waterfall.Observe` | Optional timing, control middleware, action recording and replay |
-| `Waterfall.Canonical` | Optional canonical goal encoding for replay checks |
+| `waterfall` / `waterfall.Tactic` | `waterfall`, `waterfall?`, `Mode`, `Options` |
+| `waterfall.Core` | `run`, engine transitions and root validation |
+| `waterfall.Protocol` | `Config`, `Stats`, `Move`, `Candidate`, `Job`, `Node`, `Space`, `SearchPolicy`, `Hooks` |
+| `waterfall.Choices` | Generic lazy selection, filtering, collection and commitment |
+| `waterfall.Parallel` | Isolated concurrent trials, shared work accounting and cancellation |
+| `waterfall.Committed` | ACL2-inspired callbacks over the shared engine |
+| `waterfall.Suggestions` | Checked standalone scripts and editor hints from retained paths |
+| `waterfall.Observe` | Optional timing, control middleware, action recording and replay |
+| `waterfall.Canonical` | Optional canonical goal encoding for replay checks |
 
 The [proof architecture walkthrough](IMPLEMENTATION.md) maps these interfaces to
 the named proof-stage generators and explains how their child obligations form
@@ -99,7 +99,7 @@ global attempt allowance still bound steps that leave a goal unchanged.
 
 ## Observation and replay
 
-Import `Waterfall.Observe` explicitly. `capture` returns a `Report` with success,
+Import `waterfall.Observe` explicitly. `capture` returns a `Report` with success,
 error, optional timing rows and an optional `Plan`. Timing rows distinguish
 inclusive and exclusive wall-clock nanoseconds and raw heartbeats. A `Control`
 can supply smaller per-span slices and a cooperative deadline. Deadlines are
@@ -123,10 +123,10 @@ for timing and replay examples.
 mutable observers inside this function so each worker owns separate IO references:
 
 ```lean
-import Waterfall
-import Waterfall.Observe
+import waterfall
+import waterfall.Observe
 
-open Lean Elab Tactic Waterfall
+open Lean Elab Tactic waterfall
 example (P : Prop) (h : P) : P := by
   run_tac
     discard <| Parallel.run 2 {} #[] fun use => do

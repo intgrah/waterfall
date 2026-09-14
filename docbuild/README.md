@@ -22,7 +22,7 @@ lake -d docbuild exe site check-docs
 `check-docs` adds source-document link checks, excerpt consistency and compilation
 of every complete README/website Lean example. It invokes the root package's
 pinned Lean toolchain, clearing inherited Lake search paths; this also supports
-CI checking older Waterfall toolchains with the same documentation executable.
+CI checking older waterfall toolchains with the same documentation executable.
 
 The executable finds the repository from its current directory or an optional
 second argument. Generated output is restricted to `dist/site/`; temporary proof

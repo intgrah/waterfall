@@ -14,8 +14,8 @@ Lean port, not a count of every exercise in every edition of the Coq books.
 | Total | 2,190 | 1,455 | 1,447 |
 
 These are the updated arms of the September 11, 2026 full-corpus capability
-comparison, measured at Waterfall commit
-[`6ff4eb9`](https://github.com/samth/Waterfall/commit/6ff4eb97746a772f9ec353923343bd22c1805630).
+comparison, measured at waterfall commit
+[`6ff4eb9`](https://github.com/samth/waterfall/commit/6ff4eb97746a772f9ec353923343bd22c1805630).
 They predate subsequent correctness fixes, parallel execution, proof hints and
 the Lean 4.33.1 upgrade. The current 0.1 candidate has not been rerun on the full
 corpus; these historical measurements must not be relabeled as current-revision

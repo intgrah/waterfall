@@ -1,4 +1,4 @@
-import Waterfall
+import waterfall
 
 namespace Consumer
 

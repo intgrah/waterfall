@@ -1,4 +1,4 @@
-name: Check Waterfall
+name: Check waterfall
 on:
   push:
   pull_request:

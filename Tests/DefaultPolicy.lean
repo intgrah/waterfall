@@ -1,7 +1,7 @@
-import Waterfall
-import Waterfall.Observe
+import waterfall
+import waterfall.Observe
 
-open Lean Meta Elab Tactic Waterfall Waterfall.Observe
+open Lean Meta Elab Tactic waterfall waterfall.Observe
 
 namespace DefaultPolicyFixture
 
@@ -33,11 +33,11 @@ end DefaultPolicyFixture
 namespace PublicPolicyExamples
 
 elab "wf_diagonal" : tactic => do
-  discard <| Waterfall.run {effort := 1000} #[] {
-    trials := Waterfall.diagonalTrials 1 }
+  discard <| waterfall.run {effort := 1000} #[] {
+    trials := waterfall.diagonalTrials 1 }
 
 elab "wf_free_closers" : tactic => do
-  discard <| Waterfall.run {effort := 1000} #[] {
+  discard <| waterfall.run {effort := 1000} #[] {
     cost := fun _ _ c => pure (if c.action.group == .close then 0 else c.move.cost) }
 
 example (n : Nat) : n = n := by wf_diagonal

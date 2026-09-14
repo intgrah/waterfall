@@ -1,7 +1,7 @@
-import Waterfall
-import Waterfall.Observe
+import waterfall
+import waterfall.Observe
 
-open Lean Meta Elab Tactic Waterfall Waterfall.Observe
+open Lean Meta Elab Tactic waterfall waterfall.Observe
 set_option Elab.async false
 
 -- A positive-cost operation advances a shared witness while leaving the

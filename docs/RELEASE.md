@@ -1,8 +1,8 @@
 # Release preparation
 
-The selected version is **Waterfall 0.1**, `0.1.0` in Lake. The source is public at
-[samth/Waterfall](https://github.com/samth/Waterfall), with documentation on
-[GitHub Pages](https://samth.github.io/Waterfall/). Lake can install the package
+The selected version is **waterfall 0.1**, `0.1.0` in Lake. The source is public at
+[samth/waterfall](https://github.com/samth/waterfall), with documentation on
+[GitHub Pages](https://samth.github.io/waterfall/). Lake can install the package
 from Git using the coordinate in the [README](../README.md).
 There is no version tag or Reservoir listing yet; `reservoir = false` keeps
 registry indexing disabled pending the tagged release.

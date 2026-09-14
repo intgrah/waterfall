@@ -1,9 +1,9 @@
-import Waterfall
-import Waterfall.Observe
+import waterfall
+import waterfall.Observe
 
-open Lean Meta Elab Tactic Waterfall Waterfall.Observe
+open Lean Meta Elab Tactic waterfall waterfall.Observe
 
-namespace WaterfallObserveTest
+namespace waterfallObserveTest
 
 private def checkCosts (rows : Array Row) : TacticM Unit := do
   unless rows.any (·.span.phase == .run) do throwError "missing root span"
@@ -83,7 +83,7 @@ elab "check_observer_limits" : tactic => do
   let hooks : Hooks := {
     around := fun span outcome body =>
       Control.around { slice := fun _ => pure (some 0) } span outcome body }
-  let failed ← tryCatchRuntimeEx (do discard <| Waterfall.run {} #[] hooks; pure false) fun _ => pure true
+  let failed ← tryCatchRuntimeEx (do discard <| waterfall.run {} #[] hooks; pure false) fun _ => pure true
   unless failed do throwError "zero resource allowance accepted"
   unless (← Canonical.snapshot (← getUnsolvedGoals)) == original do
     throwError "resource middleware changed proof state"
@@ -109,4 +109,4 @@ example : True := by
 -- Importing observation code does not force it into an ordinary probe run.
 example (P : Prop) (h : P) : P := by waterfall? (effort := 20)
 
-end WaterfallObserveTest
+end waterfallObserveTest

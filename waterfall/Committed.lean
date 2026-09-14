@@ -1,5 +1,5 @@
-import Waterfall.Core
-import Waterfall.Choices
+import waterfall.Core
+import waterfall.Choices
 
 /-!
 An ACL2-like policy over the shared search interface. This module contains no
@@ -9,7 +9,7 @@ inherit only their own proof ancestry. Restrictions are deliberately opt-in.
 -/
 
 open Lean Meta Elab Tactic
-namespace Waterfall.Committed
+namespace waterfall.Committed
 
 structure State where
   shaped : Bool := false
@@ -87,4 +87,4 @@ def hooks : Hooks := {
     return some ((ranked.qsort (fun a b => a.1.1 < b.1.1 ||
       (a.1.1 == b.1.1 && a.1.2 < b.1.2))).map (·.2)) }
 
-end Waterfall.Committed
+end waterfall.Committed

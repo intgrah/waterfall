@@ -1,4 +1,4 @@
-import Waterfall
+import waterfall
 
 /-!
 # Software Foundations examples
@@ -10,11 +10,11 @@ Benjamin C. Pierce and the Software Foundations contributors:
 * Verified Functional Algorithms, Sort: https://softwarefoundations.cis.upenn.edu/vfa-current/Sort.html
 * Verified Functional Algorithms, SearchTree: https://softwarefoundations.cis.upenn.edu/vfa-current/SearchTree.html
 
-These examples import only Waterfall. Every helper theorem is proved here;
+These examples import only waterfall. Every helper theorem is proved here;
 no benchmark assumptions or earlier case-study proofs are imported.
 -/
 
-namespace Waterfall.Examples.Optimization
+namespace waterfall.Examples.Optimization
 
 /-! An optimizer erases `0 + e` anywhere inside an arithmetic expression.
 Its correctness statement relates two recursive functions, including the
@@ -41,9 +41,9 @@ def optimize : AExp → AExp
 theorem optimize_sound (a : AExp) : eval (optimize a) = eval a := by
   waterfall [eval, optimize]
 
-end Waterfall.Examples.Optimization
+end waterfall.Examples.Optimization
 
-namespace Waterfall.Examples.Sorting
+namespace waterfall.Examples.Sorting
 
 /-! Insertion sort needs both an order guarantee and a permutation guarantee:
 a function that returns `[]` would meet sortedness alone. -/
@@ -73,7 +73,7 @@ theorem insert_perm (x : Nat) (xs : List Nat) :
   waterfall [insert, List.Perm.refl, List.Perm.cons, List.Perm.swap]
 
 theorem sort_perm (xs : List Nat) : List.Perm xs (sort xs) := by
-  -- Keep this short permutation composition explicit; Waterfall proves the
+  -- Keep this short permutation composition explicit; waterfall proves the
   -- insertion and sortedness obligations above, including the case analysis.
   induction xs with
   | nil => exact List.Perm.nil
@@ -83,9 +83,9 @@ theorem sort_correct (xs : List Nat) :
     List.Perm xs (sort xs) ∧ Sorted (sort xs) := by
   waterfall [sort_perm, sort_sorted]
 
-end Waterfall.Examples.Sorting
+end waterfall.Examples.Sorting
 
-namespace Waterfall.Examples.TreeTraversal
+namespace waterfall.Examples.TreeTraversal
 
 /-! The simple traversal appends lists. Its accumulator version avoids those
 intermediate appends. The helper quantifies over every accumulator, which must
@@ -112,4 +112,4 @@ theorem fast_elements_correct (t : Tree V) :
     fastElements t [] = elements t := by
   waterfall [fast_elements_helper]
 
-end Waterfall.Examples.TreeTraversal
+end waterfall.Examples.TreeTraversal

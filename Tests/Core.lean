@@ -1,8 +1,8 @@
-import Waterfall
+import waterfall
 
-open Lean Elab Tactic Waterfall
+open Lean Elab Tactic waterfall
 
-namespace WaterfallTest
+namespace waterfallTest
 
 -- A resource exception after partial success must be contained; the caller
 -- restores the whole snapshot before trying the next alternative. Work spent
@@ -165,7 +165,7 @@ theorem doubled_token (n : Nat) : Token (n + n) := Token.doubled n
 -- Retrieve a previously proved theorem without adding it to the explicit rule
 -- list. Selecting this label distinguishes retrieval from constructor search.
 example (n : Nat) : Token (n + n) := by
-  check_local_operation "apply library WaterfallTest.doubled_token"
+  check_local_operation "apply library waterfallTest.doubled_token"
 
 inductive Packet where
   | empty
@@ -243,14 +243,14 @@ example (p : Prop) (h : p) : p := by
     let s ← run {effort := 2000, attemptHeartbeats := 20}
     unless s.strength > 1 do throwError "did not increase individual step effort"
 
-end WaterfallTest
+end waterfallTest
 
-#print axioms WaterfallTest.append_nil
-#print axioms WaterfallTest.append_assoc
-#print axioms WaterfallTest.shared_witness
-#print axioms WaterfallTest.advance_reachable
-#print axioms WaterfallTest.combine_bounded
-namespace WaterfallTest
+#print axioms waterfallTest.append_nil
+#print axioms waterfallTest.append_assoc
+#print axioms waterfallTest.shared_witness
+#print axioms waterfallTest.advance_reachable
+#print axioms waterfallTest.combine_bounded
+namespace waterfallTest
 -- The free-closer policy retains the original leaf-admission contract. This is
 -- a general callback, not a special case for the fixture or constructor names.
 private def freeClosingPolicy : Hooks := {
@@ -265,11 +265,11 @@ example (n : Nat) : Token (n + n) := by
   run_tac
     let saved ← Tactic.saveState
     let s ← run {effort := 20} #[] freeClosingPolicy
-    unless s.depth == 0 && s.choices.contains "close constructor WaterfallTest.Token.doubled" do
+    unless s.depth == 0 && s.choices.contains "close constructor waterfallTest.Token.doubled" do
       throwError "free constructor required structural search"
     saved.restore true
     let s ← run {effort := 30}
-    unless s.depth == 1 && s.choices.contains "close constructor WaterfallTest.Token.doubled" do
+    unless s.depth == 1 && s.choices.contains "close constructor waterfallTest.Token.doubled" do
       throwError "default constructor admission changed its proof or charged depth"
 
 -- Expose two obligations sharing an unknown witness. Mark.zero is tried first;
@@ -281,17 +281,17 @@ example : ∃ n, Mark n ∧ Allowed n := by
     let saved ← Tactic.saveState
     let s ← run {effort := 100} #[] freeClosingPolicy
     unless s.depth == 0 &&
-        s.choices.contains "close constructor WaterfallTest.Mark.one" &&
-        s.choices.contains "close constructor WaterfallTest.Allowed.one" do
+        s.choices.contains "close constructor waterfallTest.Mark.one" &&
+        s.choices.contains "close constructor waterfallTest.Allowed.one" do
       throwError "free constructor closure lost the shared-witness continuation"
     saved.restore true
     -- Keep the same hundred-attempt bound for the actual default. Both closing
     -- labels must survive rollback of the earlier, incompatible zero witness.
     let s ← run {effort := 100}
     unless s.depth == 1 &&
-        s.choices.contains "close constructor WaterfallTest.Mark.one" &&
-        s.choices.contains "close constructor WaterfallTest.Allowed.one" do
+        s.choices.contains "close constructor waterfallTest.Mark.one" &&
+        s.choices.contains "close constructor waterfallTest.Allowed.one" do
       throwError "default constructor closure lost the shared-witness continuation"
-end WaterfallTest
+end waterfallTest
 
 #eval IO.println "WF_CORE_TEST_EOF"

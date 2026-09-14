@@ -1,10 +1,10 @@
-# Independent adversarial review of Waterfall
+# Independent adversarial review of waterfall
 
 **Resolution:** all three findings below have been fixed, with regression tests.
 See [FIXES.md](FIXES.md). This review and its original evidence are retained as
 the historical diagnosis of the pre-fix implementation.
 
-Reviewed 2026-09-11. Target: `/home/samth/work/Waterfall`, baseline `75e0ecf`
+Reviewed 2026-09-11. Target: `/home/samth/work/waterfall`, baseline `75e0ecf`
 plus the readability refactor in `Core.lean` and `Protocol.lean`, finalized as
 `b859160c2580d4f1109aeb8b5d966851b24b8d7c`.
 This review concerns the extracted package, not the legacy waterfall driver.
@@ -19,7 +19,7 @@ reported failures and their checked controls.
 ### P1 — Cancelled workers lose their measured heartbeat debt
 
 **Pre-existing; source-confirmed and reproduced.**
-`Waterfall/Parallel.lean:35-40` catches the worker's body with
+`waterfall/Parallel.lean:35-40` catches the worker's body with
 `tryCatchRuntimeEx`, then stores its measured heartbeats in `Result`.
 `Parallel.lean:120-121` debits only tasks returning an outer `.ok Result`.
 
@@ -62,7 +62,7 @@ not depend on a catch combinator that excludes interrupts.
 ### P2 — Committed induction stops before scanning an earlier eligible sibling
 
 **Pre-existing; source-confirmed and reproduced.**
-`Waterfall/Committed.lean:63-71` loops over reverse agenda order but immediately
+`waterfall/Committed.lean:63-71` loops over reverse agenda order but immediately
 returns the result of `candidates` for the first unassigned goal. If that goal
 has no applicable induction/inversion, no earlier unassigned goal is examined.
 This is not commitment after the first progressing induction: no transition has
@@ -88,7 +88,7 @@ is not the presently documented first-progress commitment.
 ### P2 — Local shape equality can veto real progress on the shared proof state
 
 **Pre-existing; source-confirmed and reproduced extension limitation.**
-`Waterfall/Core.lean:449-453,564-566` compares only the selected goal's target
+`waterfall/Core.lean:449-453,564-566` compares only the selected goal's target
 and local declaration types. Equality rejects every single-child structural
 transition, including arbitrary `Hooks.extraMoves`. It omits local let values,
 other pending goals, and metavariables reachable only from those goals. An

@@ -1,4 +1,4 @@
-import Waterfall.Core
+import waterfall.Core
 
 /-!
 Compile a retained proof path into ordinary Lean tactics. This module is a
@@ -7,13 +7,13 @@ frontend: it neither adds proof operations nor changes the engine's scheduling.
 A command recipe is only a proposal. The entire printed replacement is parsed
 and elaborated from the original checkpoint, with recovery disabled, before it
 can become a suggestion. Unsupported operations or different elaborator naming
-fall back to the completed proof term. Neither route calls Waterfall again.
+fall back to the completed proof term. Neither route calls waterfall again.
 -/
 
 open Lean Meta Elab Tactic Parser.Tactic
-namespace Waterfall.Suggestions
+namespace waterfall.Suggestions
 
-initialize registerTraceClass `Waterfall.suggestions
+initialize registerTraceClass `waterfall.suggestions
 
 /-- Only accepted steps are recorded, so failed alternatives never enter a hint.
 Allocate this recorder inside each parallel worker, just like other middleware. -/
@@ -224,7 +224,7 @@ def compile (initial : Tactic.SavedState) (roots : List MVarId)
       winning.restore true
       return ← checkText initial roots (← sequence commands) false
     ) (fun ex => do
-      trace[Waterfall.suggestions] "command rendering failed: {ex.toMessageData}"
+      trace[waterfall.suggestions] "command rendering failed: {ex.toMessageData}"
       winning.restore true
       let original ← withoutModifyingState do
         initial.restore true
@@ -252,4 +252,4 @@ def run (ref : Syntax) (rules : Array (TSyntax `term))
   Meta.Tactic.TryThis.addSuggestion ref script.tactic (origSpan? := ref)
   return stats
 
-end Waterfall.Suggestions
+end waterfall.Suggestions

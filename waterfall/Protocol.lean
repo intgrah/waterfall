@@ -9,7 +9,7 @@ the engine still owns rollback, accounting and final proof validation.
 -/
 
 open Lean Elab Tactic
-namespace Waterfall
+namespace waterfall
 
 -- Two independent limits matter: effort bounds the number of attempted moves;
 -- Lean's ambient heartbeat budget bounds all work, including move enumeration.
@@ -246,4 +246,4 @@ def Hooks.array (hooks : Hooks) (span : Span) (body : TacticM (Array α)) :
     TacticM (Array α) :=
   hooks.around span (fun values => { count := some values.size }) body
 
-end Waterfall
+end waterfall

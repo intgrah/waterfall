@@ -67,7 +67,7 @@ def prepareExamples (blocks : Array Example) (mainPage : FilePath) : Except Stri
     if sample.code.startsWith "import " then continue
     if sample.code.startsWith "waterfall " then
       let pieces := traversal.code.splitOn "  waterfall"
-      if pieces.length < 2 then throw "Main example has no Waterfall invocation"
+      if pieces.length < 2 then throw "Main example has no waterfall invocation"
       let proofPrelude := String.intercalate "  waterfall" pieces.dropLast
       let tactic := String.intercalate "\n" (sample.code.trimAscii.toString.splitOn "\n" |>.map ("  " ++ ·))
       out := out.push {sample with code := proofPrelude ++ tactic ++ "\n"}

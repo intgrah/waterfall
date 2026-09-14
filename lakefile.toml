@@ -5,17 +5,17 @@ keywords = ["automation", "induction", "tactic", "software-verification"]
 license = "Apache-2.0"
 licenseFiles = ["LICENSE"]
 readmeFile = "README.md"
-homepage = "https://samth.github.io/Waterfall/"
+homepage = "https://samth.github.io/waterfall/"
 # Registry indexing remains disabled until the first tagged release.
 reservoir = false
-defaultTargets = ["Waterfall"]
-testDriver = "WaterfallTests"
+defaultTargets = ["waterfall"]
+testDriver = "waterfallTests"
 
 [[lean_lib]]
-name = "Waterfall"
+name = "waterfall"
 
 [[lean_lib]]
-name = "WaterfallTests"
+name = "waterfallTests"
 roots = ["Tests.Core", "Tests.Canonical", "Tests.Observe", "Tests.ContextPolicy",
   "Tests.DefaultPolicy", "Tests.Exhaustion", "Tests.SearchPolicy", "Tests.Schedule",
   "Tests.TrialPolicy", "Tests.Options", "Tests.Import", "Tests.Capabilities",

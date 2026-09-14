@@ -1,6 +1,6 @@
-import Waterfall
+import waterfall
 
-open Lean Meta Elab Tactic Waterfall
+open Lean Meta Elab Tactic waterfall
 set_option Elab.async false
 set_option maxHeartbeats 0
 

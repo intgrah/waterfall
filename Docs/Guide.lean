@@ -1,9 +1,9 @@
-import Waterfall
+import waterfall
 
 /-!
-# Using Waterfall
+# Using waterfall
 
-Import `Waterfall` and try `waterfall` on a complete goal or a remaining branch.
+Import `waterfall` and try `waterfall` on a complete goal or a remaining branch.
 Supply imported definitions and useful lemmas in brackets. The search inspects
 local hypotheses and discovers definitions from the current module; it does not
 unfold every imported definition automatically.
@@ -11,7 +11,7 @@ unfold every imported definition automatically.
 The following examples are compiled by `lake test`.
 -/
 
-namespace Waterfall.Guide
+namespace waterfall.Guide
 
 /-- A recursive function used to illustrate induction and supplied definitions. -/
 def append {α : Type} : List α → List α → List α
@@ -67,10 +67,10 @@ example (P : Prop) (h : P) : P := by
 ## Extending search
 
 `Mode.hooks` supplies ordinary callback functions for a mode. Adapt the
-`Hooks` structure through the programmatic `Waterfall.run` interface. Keep the default mode unless a measured alternative helps your goals.
+`Hooks` structure through the programmatic `waterfall.run` interface. Keep the default mode unless a measured alternative helps your goals.
 -/
 example (P : Prop) (h : P) : P := by
-  run_tac discard <| Waterfall.run {} #[] { Waterfall.Mode.search.hooks with
-    trials := Waterfall.diagonalTrials 1 }
+  run_tac discard <| waterfall.run {} #[] { waterfall.Mode.search.hooks with
+    trials := waterfall.diagonalTrials 1 }
 
-end Waterfall.Guide
+end waterfall.Guide

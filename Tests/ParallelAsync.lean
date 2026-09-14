@@ -1,6 +1,6 @@
-import Waterfall
+import waterfall
 
-open Lean Elab Tactic Waterfall
+open Lean Elab Tactic waterfall
 -- Exercise calls made from Lean's own asynchronous elaboration workers. With a
 -- one-thread task pool, a polling coordinator must not starve its proof tasks.
 set_option Elab.async true

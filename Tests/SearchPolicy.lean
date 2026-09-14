@@ -1,10 +1,10 @@
-import Waterfall
-import Waterfall.Committed
-import Waterfall.Observe
+import waterfall
+import waterfall.Committed
+import waterfall.Observe
 
-open Lean Meta Elab Tactic Waterfall Waterfall.Observe
+open Lean Meta Elab Tactic waterfall waterfall.Observe
 
-namespace WaterfallSearchPolicyTest
+namespace waterfallSearchPolicyTest
 
 -- The selection combinator must stop after the first yielded transition even
 -- when the downstream visitor fails. Producing the tail would defeat commitment.
@@ -40,7 +40,7 @@ elab "check_first_applicable" : tactic => do
       fixture "unused" (tail.set true)]
     policy := ⟨Unit, (), fun space => Choices.first <|
       space.expand 0 #[#[.basic]] (fun c => c.move.role == `fixture)⟩ }
-  let stats ← Waterfall.run { effort := 2 } #[] hooks
+  let stats ← waterfall.run { effort := 2 } #[] hooks
   unless stats.attempts == 2 && !(← tail.get) do throwError "first applicable was not lazy"
 
 example : True := by check_first_applicable
@@ -57,8 +57,8 @@ private def witnessHooks (commit : Bool) : Hooks := {
 
 -- Failure downstream must revisit the witness only in the noncommitted policy.
 example : ∃ n : Nat, n = 1 := by
-  fail_if_success run_tac discard <| Waterfall.run { effort := 8 } #[] (witnessHooks true)
-  run_tac discard <| Waterfall.run { effort := 8 } #[] (witnessHooks false)
+  fail_if_success run_tac discard <| waterfall.run { effort := 8 } #[] (witnessHooks true)
+  run_tac discard <| waterfall.run { effort := 8 } #[] (witnessHooks false)
 
 -- A different policy explicitly collects alternatives, scores successor states,
 -- and retains one. This tests the abstraction beyond the two production policies:
@@ -72,7 +72,7 @@ example : ∃ n : Nat, n = 1 := by
       match ranked[0]? with
       | some node => visit node
       | none => pure false⟩
-    discard <| Waterfall.run { effort := 8 } #[] { hooks with policy }
+    discard <| waterfall.run { effort := 8 } #[] { hooks with policy }
 
 -- A FIFO frontier spans multiple expansion calls, not just siblings of one
 -- node. Its entries carry their own proof states. This uses exactly the same
@@ -86,7 +86,7 @@ private def fifoPolicy : SearchPolicy := ⟨List (Node Unit), [], fun space visi
 
 example : ∃ n : Nat, n = 1 := by
   run_tac
-    discard <| Waterfall.run { effort := 8 } #[] { (witnessHooks false) with policy := fifoPolicy }
+    discard <| waterfall.run { effort := 8 } #[] { (witnessHooks false) with policy := fifoPolicy }
 
 -- Both root alternatives are already funded when the frontier selects the dead
 -- branch. Draining its queue must still find the completed proof at the exact
@@ -227,7 +227,7 @@ example : True ∧ True := by
         space.expand 0 #[#[.basic]]
           (fun c => c.move.role == `fixture && c.move.label == (if phase == 0 then "branch" else "leaf"))
           (fun next => visit { next with state := phase + 1 })⟩ }
-    discard <| Waterfall.run { effort := 3 } #[] hooks
+    discard <| waterfall.run { effort := 3 } #[] hooks
 
 def append : List Nat → List Nat → List Nat
   | [], ys => ys
@@ -253,7 +253,7 @@ example (n m : Nat) (h : Twice n m) : m = 2 * n := by
         if span.induction != .none then induced.set true
         if span.label == "cases hypothesis" && !(← induced.get) then earlyInversion.set true
       body }
-    discard <| Waterfall.run { effort := 1000 } #[] hooks
+    discard <| waterfall.run { effort := 1000 } #[] hooks
     unless (← induced.get) && !(← earlyInversion.get) do
       throwError "ordinary work consumed recursive evidence before induction"
 
@@ -262,4 +262,4 @@ example : True := by
   fail_if_success have : False := by waterfall (mode := .committed) (effort := 10)
   trivial
 
-end WaterfallSearchPolicyTest
+end waterfallSearchPolicyTest

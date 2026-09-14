@@ -1,16 +1,16 @@
-import Waterfall.Parallel
-import Waterfall.Committed
-import Waterfall.Suggestions
+import waterfall.Parallel
+import waterfall.Committed
+import waterfall.Suggestions
 
 /-! # The `waterfall` tactic
 
 `waterfall [definitions, lemmas]` searches for a complete proof. Standard Lean
 configuration items select effort, enumeration and search behavior. Import
-`Waterfall.Observe` separately for timing, action recording and plan replay.
+`waterfall.Observe` separately for timing, action recording and plan replay.
 -/
 
 open Lean Elab Tactic Parser.Tactic
-namespace Waterfall
+namespace waterfall
 
 /-- Two configurations of the same proof engine. `committed` discards alternatives
 after local progress; `search` retains backtracking over the full continuation. -/
@@ -26,7 +26,7 @@ def Mode.hooks : Mode → Hooks
 
 /-- User-facing tactic options. The inherited `Config` fields control resources
 and enumeration. For custom search, ordering, costs and observation, adapt
-`Mode.hooks` and pass the callbacks to `Waterfall.run`. -/
+`Mode.hooks` and pass the callbacks to `waterfall.run`. -/
 structure Options extends Config where
   /-- Backtracking search by default; commitment is an explicit choice. -/
   mode : Mode := .search
@@ -65,4 +65,4 @@ elab_rules : tactic
     discard <| Parallel.run options.cpus options.toConfig rules
       (Suggestions.run ref rules options.mode.hooks)
 
-end Waterfall
+end waterfall

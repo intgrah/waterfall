@@ -1,7 +1,7 @@
-import Waterfall
-import Waterfall.Observe
+import waterfall
+import waterfall.Observe
 
-open Lean Meta Elab Tactic Waterfall
+open Lean Meta Elab Tactic waterfall
 set_option Elab.async false
 namespace ParallelFixture
 

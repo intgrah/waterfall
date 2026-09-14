@@ -1,4 +1,4 @@
-import Waterfall.Core
+import waterfall.Core
 import Std.Sync.Mutex
 
 /-!
@@ -12,7 +12,7 @@ retains eventual availability of every trial in a fair underlying schedule.
 -/
 
 open Lean Meta Elab Tactic
-namespace Waterfall.Parallel
+namespace waterfall.Parallel
 
 private structure Result where
   value : Except Exception Stats
@@ -66,7 +66,7 @@ Workers have dedicated threads; operating-system affinity can limit CPU use. -/
 def run (cpus : Nat) (cfg : Config) (rules : Array (TSyntax `term) := #[])
     (withHooks : (Hooks → TacticM Stats) → TacticM Stats := fun use => use {}) : TacticM Stats := do
   if cpus == 0 then throwError "waterfall cpus must be positive"
-  if cpus == 1 || cfg.effort == 0 then return ← withHooks (fun hooks => Waterfall.run cfg rules hooks)
+  if cpus == 1 || cfg.effort == 0 then return ← withHooks (fun hooks => waterfall.run cfg rules hooks)
   let cpus := min cpus cfg.effort
   let saved ← Tactic.saveState
   let original ← getUnsolvedGoals
@@ -101,7 +101,7 @@ def run (cpus : Nat) (cfg : Config) (rules : Array (TSyntax `term) := #[])
               if span.phase == .node then
                 ledger.atomically <| modify fun s => { s with nodes := s.nodes + 1 }
               inner.around span outcome body }
-          let stats ← Waterfall.run { cfg with report := false } rules hooks
+          let stats ← waterfall.run { cfg with report := false } rules hooks
           Core.checkSystem "waterfall worker result"
           return stats
         tasks.modify (·.push task)
@@ -153,4 +153,4 @@ def run (cpus : Nat) (cfg : Config) (rules : Array (TSyntax `term) := #[])
           logInfo m!"PARALLEL success=false cpus={cpus} attempts={totals.attempts} nodes={totals.nodes} rawHeartbeats={spent}"
         throw ex
 
-end Waterfall.Parallel
+end waterfall.Parallel

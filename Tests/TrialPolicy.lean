@@ -1,7 +1,7 @@
-import Waterfall
-import Waterfall.Observe
+import waterfall
+import waterfall.Observe
 
-open Lean Meta Elab Tactic Waterfall Waterfall.Observe
+open Lean Meta Elab Tactic waterfall waterfall.Observe
 namespace SinglePolicyFixture
 
 private def weightedHooks (rootPrefix : Nat) (weight : Group → Nat) : Hooks :=

@@ -1,7 +1,7 @@
-import Waterfall
-import Waterfall.Committed
+import waterfall
+import waterfall.Committed
 
-open Lean Meta Elab Tactic Waterfall
+open Lean Meta Elab Tactic waterfall
 
 namespace CapabilityTest
 
@@ -130,7 +130,7 @@ example : True := by
           else
             let (_, child) ← g.note `first_forward (mkConst ``True.intro)
             setGoals [child] }] }
-    let s ← Waterfall.run { effort := 2 } #[] hooks
+    let s ← waterfall.run { effort := 2 } #[] hooks
     unless s.attempts == 2 && s.choices.size == 2 do
       throwError "committed policy suppressed the second forward transition"
 

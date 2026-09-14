@@ -1,7 +1,7 @@
 # Examples from Software Foundations
 
 These three adaptations are in [Docs/Examples.lean](../Docs/Examples.lean). All definitions and
-helper proofs are included. The file imports only Waterfall and is checked by `lake test` on
+helper proofs are included. The file imports only waterfall and is checked by `lake test` on
 Lean 4.33.1 and 4.30.0.
 
 After `lake build`, the file can also be checked with `lake env lean Docs/Examples.lean`.
@@ -35,9 +35,9 @@ evaluation equations to normalization.
 <summary>Complete optimizer example</summary>
 
 ```lean
-import Waterfall
+import waterfall
 
-namespace Waterfall.Examples.Optimization
+namespace waterfall.Examples.Optimization
 
 /-! An optimizer erases `0 + e` anywhere inside an arithmetic expression.
 Its correctness statement relates two recursive functions, including the
@@ -64,7 +64,7 @@ def optimize : AExp → AExp
 theorem optimize_sound (a : AExp) : eval (optimize a) = eval a := by
   waterfall [eval, optimize]
 
-end Waterfall.Examples.Optimization
+end waterfall.Examples.Optimization
 ```
 
 </details>
@@ -98,13 +98,13 @@ theorem sort_sorted (xs : List Nat) : Sorted (sort xs) := by
 ```
 
 The permutation argument has a separate obligation: composing `List.Perm.cons` with
-`insert_perm` instantiated at `sort xs`. Waterfall proves `insert_perm`, but neither the direct
-invocation nor induction followed by Waterfall closed this composition at the tested default
+`insert_perm` instantiated at `sort xs`. waterfall proves `insert_perm`, but neither the direct
+invocation nor induction followed by waterfall closed this composition at the tested default
 budgets. The example retains that step explicitly:
 
 ```lean
 theorem sort_perm (xs : List Nat) : List.Perm xs (sort xs) := by
-  -- Keep this short permutation composition explicit; Waterfall proves the
+  -- Keep this short permutation composition explicit; waterfall proves the
   -- insertion and sortedness obligations above, including the case analysis.
   induction xs with
   | nil => exact List.Perm.nil
@@ -124,9 +124,9 @@ theorem sort_correct (xs : List Nat) :
 <summary>Complete insertion-sort example</summary>
 
 ```lean
-import Waterfall
+import waterfall
 
-namespace Waterfall.Examples.Sorting
+namespace waterfall.Examples.Sorting
 
 /-! Insertion sort needs both an order guarantee and a permutation guarantee:
 a function that returns `[]` would meet sortedness alone. -/
@@ -156,7 +156,7 @@ theorem insert_perm (x : Nat) (xs : List Nat) :
   waterfall [insert, List.Perm.refl, List.Perm.cons, List.Perm.swap]
 
 theorem sort_perm (xs : List Nat) : List.Perm xs (sort xs) := by
-  -- Keep this short permutation composition explicit; Waterfall proves the
+  -- Keep this short permutation composition explicit; waterfall proves the
   -- insertion and sortedness obligations above, including the case analysis.
   induction xs with
   | nil => exact List.Perm.nil
@@ -166,7 +166,7 @@ theorem sort_correct (xs : List Nat) :
     List.Perm xs (sort xs) ∧ Sorted (sort xs) := by
   waterfall [sort_perm, sort_sorted]
 
-end Waterfall.Examples.Sorting
+end waterfall.Examples.Sorting
 ```
 
 </details>
@@ -191,7 +191,7 @@ theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
   waterfall
 ```
 
-Waterfall discovers the definitions in this module, and append associativity is already
+waterfall discovers the definitions in this module, and append associativity is already
 registered for simplification. The traversal theorem is the empty-accumulator specialization:
 
 ```lean
@@ -207,9 +207,9 @@ No binary-search-tree invariant is required; the result is structural.
 <summary>Complete tree-traversal example</summary>
 
 ```lean
-import Waterfall
+import waterfall
 
-namespace Waterfall.Examples.TreeTraversal
+namespace waterfall.Examples.TreeTraversal
 
 /-! The simple traversal appends lists. Its accumulator version avoids those
 intermediate appends. The helper quantifies over every accumulator, which must
@@ -236,7 +236,7 @@ theorem fast_elements_correct (t : Tree V) :
     fastElements t [] = elements t := by
   waterfall [fast_elements_helper]
 
-end Waterfall.Examples.TreeTraversal
+end waterfall.Examples.TreeTraversal
 ```
 
 </details>

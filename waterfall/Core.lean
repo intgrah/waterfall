@@ -1,4 +1,4 @@
-import Waterfall.Protocol
+import waterfall.Protocol
 
 /-!
 Lean-native inductive proof search. This engine imports only its protocol and
@@ -25,9 +25,9 @@ and actual heartbeat counter live outside rollback; failed work is never refunde
 
 open Lean Meta Elab Tactic
 
-namespace Waterfall
+namespace waterfall
 
-initialize registerTraceClass `Waterfall.search
+initialize registerTraceClass `waterfall.search
 
 private def tacticMove (label : String) (stx : TSyntax `tactic) : Move :=
   { cost := 1, label := label, command? := some stx, run := evalTactic stx }
@@ -477,10 +477,10 @@ def attempt (cfg : Config) (stats : IO.Ref Stats) (m : Move)
     -- recovery is disabled so a partial or admitted result cannot pass as success.
     withTheReader Core.Context (fun c => { c with initHeartbeats := now, maxHeartbeats := cap }) do
       Term.withoutErrToSorry <| withoutRecover m.run
-    trace[Waterfall.search] "{m.label}: goals={(← getUnsolvedGoals).length}"
+    trace[waterfall.search] "{m.label}: goals={(← getUnsolvedGoals).length}"
     -- The final check also catches operations that return after overspending.
     return decide ((← IO.getNumHeartbeats) - now <= cap)) fun ex => do
-    trace[Waterfall.search] "{m.label}: {ex.toMessageData}"
+    trace[waterfall.search] "{m.label}: {ex.toMessageData}"
     return false
 
 /-- Expand one selected goal. The visitor sees a successful local transition,
@@ -690,4 +690,4 @@ def run (cfg : Config) (rules : Array (TSyntax `term) := #[])
       if ex.isRuntime then throwError "waterfall reached the ambient resource limit"
       throw ex
 
-end Waterfall
+end waterfall
