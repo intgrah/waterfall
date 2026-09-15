@@ -88,7 +88,7 @@ example (P : Prop) (h : P) : P := by
 end waterfallReadme
 ```
 
-The default `mode := .search` is the default backtracking mode. `mode := .committed` is a simpler forward search that never backtracks.
+The default `mode := .search` is the default backtracking mode. `mode := .committed` is a simpler forward search that never backtracks after it makes progress.
 
 `effort` configures how hard the search works: more effort permits more attempts, deeper plans and stronger operations. Lean's enclosing resource limits still apply. 
 `waterfall?` provides a “Try this” editor hint that replaces the invocation
