@@ -6,8 +6,6 @@ license = "Apache-2.0"
 licenseFiles = ["LICENSE"]
 readmeFile = "README.md"
 homepage = "https://samth.github.io/waterfall/"
-# Registry indexing remains disabled until the first tagged release.
-reservoir = false
 defaultTargets = ["waterfall"]
 testDriver = "waterfallTests"
 
