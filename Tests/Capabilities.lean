@@ -10,7 +10,7 @@ namespace CapabilityTest
 inductive Stamp : Nat → Prop where
   | mk (n : Nat) : Stamp n
 
-@[induction_eliminator] def Stamp.induct
+@[induction_eliminator] theorem Stamp.induct
     {motive : (n : Nat) → Stamp n → Prop}
     (zero : motive 0 (.mk 0))
     (succ : ∀ n, motive n (.mk n) → motive (n + 1) (.mk (n + 1)))
@@ -20,7 +20,7 @@ inductive Stamp : Nat → Prop where
   | zero => exact zero
   | succ n ih => exact succ n ih
 
-@[cases_eliminator] def Stamp.view
+@[cases_eliminator] theorem Stamp.view
     {motive : (n : Nat) → Stamp n → Prop}
     (zero : motive 0 (.mk 0))
     (succ : ∀ n, motive (n + 1) (.mk (n + 1)))
@@ -57,9 +57,9 @@ example (n : Nat) (h : Stamp n) : True := by
   trivial
 
 set_option tactic.customEliminators false in
-example (n : Nat) (h : Stamp n) : True := by
+example (_n : Nat) (_h : Stamp _n) : True := by
   fail_if_success choose_operation "cases hypothesis registered"
-  fail_if_success choose_operation "induction h"
+  fail_if_success choose_operation "induction _h"
   trivial
 
 -- A local dependent function can return data rather than a proposition.

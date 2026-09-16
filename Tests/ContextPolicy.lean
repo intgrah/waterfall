@@ -66,7 +66,7 @@ elab "check_context_callbacks" : tactic => do
     throwError "exact replay searched alternatives or changed policy inputs"
   checkComplete [root, sibling.mvarId!]
 
-example (n : Nat) : True := by check_context_callbacks
+example (_n : Nat) : True := by check_context_callbacks
 
 -- A policy error must also unwind the entire caller state. This tests callback
 -- exceptions separately from an ordinary failed proof action.
