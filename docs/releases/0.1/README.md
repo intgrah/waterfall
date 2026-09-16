@@ -27,7 +27,7 @@ noncomment lines; the default import remains 1,051. Optional observation adds
 
 ## Checked Software Foundations examples
 
-[Docs/Examples.lean](../../../Docs/Examples.lean) contains eight proved theorems
+[Tutorial/Examples.lean](../../../Tutorial/Examples.lean) contains eight proved theorems
 in three self-contained developments:
 
 1. LF Imp: removing `0 + e` preserves expression evaluation.
@@ -41,7 +41,7 @@ All definitions and helper lemmas needed by these examples are included. They
 import only waterfall and contain no admitted proofs. The original chapters are
 linked in the file. The README's complete tree example is separately compiled
 from its literal code fence. `lake test` compiles all eight example theorems,
-and `leanchecker Docs.Examples` independently checks the resulting declarations.
+and `leanchecker Tutorial.Examples` independently checks the resulting declarations.
 
 During preparation, `sort_perm` failed both with plain waterfall (1,000
 attempts) and with explicit induction followed by waterfall at the ambient

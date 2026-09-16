@@ -84,7 +84,7 @@ and `policy.choose` for a different traversal or deliberate pruning. The engine
 checks ordering permutations and structural cost floors. Custom callbacks can
 still make search unfair or fail to terminate; they are trusted metaprograms.
 
-The [compiled tutorial](../Docs/Guide.lean) demonstrates these options. The
+The [compiled tutorial](../Tutorial/Guide.lean) demonstrates these options. The
 [API reference](API.md) explains checkpoint ownership, middleware and replay.
 
 ## Multiple CPUs

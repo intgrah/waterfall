@@ -37,7 +37,7 @@ jobs:
           use-mathlib-cache: "false"
       - run: lake exe site check-docs
         working-directory: docbuild
-      - run: lake env leanchecker Docs.Examples
+      - run: lake env leanchecker Tutorial.Examples
       - run: lake build
         working-directory: consumer
       - run: lake env leanchecker Consumer

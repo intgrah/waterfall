@@ -1,6 +1,6 @@
 # API reference
 
-Lean doc comments provide hover documentation in the editor. `Docs/Guide.lean`
+Lean doc comments provide hover documentation in the editor. `Tutorial/Guide.lean`
 is a compiled tutorial. The library exports the following small interfaces.
 
 | Module | Responsibility |

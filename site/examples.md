@@ -1,10 +1,10 @@
 # Examples from Software Foundations
 
-These three adaptations are in [Docs/Examples.lean](../Docs/Examples.lean). All definitions and
+These three adaptations are in [Tutorial/Examples.lean](../Tutorial/Examples.lean). All definitions and
 helper proofs are included. The file imports only waterfall and is checked by `lake test` on
 Lean 4.33.1 and 4.30.0.
 
-After `lake build`, the file can also be checked with `lake env lean Docs/Examples.lean`.
+After `lake build`, the file can also be checked with `lake env lean Tutorial/Examples.lean`.
 
 <nav aria-label="Examples">
 

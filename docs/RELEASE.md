@@ -4,8 +4,8 @@ The selected version is **waterfall 0.1**, `0.1.0` in Lake. The source is public
 [samth/waterfall](https://github.com/samth/waterfall), with documentation on
 [GitHub Pages](https://samth.github.io/waterfall/). Lake can install the package
 from Git using the coordinate in the [README](../README.md).
-There is no version tag or Reservoir listing yet; `reservoir = false` keeps
-registry indexing disabled pending the tagged release.
+Reservoir indexing is enabled in the package metadata. The `v0.1.0` tag is the
+release coordinate for this version.
 
 The package targets Lean 4.33.1 and also tests compatibility with Lean 4.30.0.
 It has no external Lean library dependencies and contains Apache-2.0 licensing,
@@ -26,10 +26,10 @@ The three defects identified by the
 from the readability refactor. [Fix details and regression tests](reviews/2026-09-11/FIXES.md)
 cover cancellation accounting, committed sibling scanning, and extension progress.
 
-Remaining work for the tagged release:
+Release validation and registry follow-up:
 
 1. Validate the selected commit from a clean clone, including Git-based installation.
-2. Enable Reservoir indexing and create the `v0.1.0` version tag.
+2. The `v0.1.0` version tag identifies the commit that passed release CI.
 3. Confirm the package's Reservoir entry and test its registry coordinate before
    documenting registry installation as available.
 

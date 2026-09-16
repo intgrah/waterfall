@@ -44,7 +44,7 @@ Across an agent-generated port of Software Foundations, waterfall proves 1,455 o
 
 The "Committed" mode for `waterfall` avoids backtracking, and thus can be faster but may miss some proofs. 
 
-For small examples you can read and run, see [Docs/Examples.lean](Docs/Examples.lean):
+For small examples you can read and run, see [Tutorial/Examples.lean](Tutorial/Examples.lean):
 
 - **LF / Imp:** prove that eliminating `0 + e` preserves expression evaluation.
 - **VFA / Sort:** insertion-sort correctness, including sortedness and permutation
@@ -108,7 +108,7 @@ instantiation rules can be supplied in brackets.
 | `deferChecks` | `false` | Delay candidate applicability probes |
 | `report` | `false` | Print search statistics |
 
-See the [compiled Lean tutorial](Docs/Guide.lean), [user guide](docs/GUIDE.md),
+See the [compiled Lean tutorial](Tutorial/Guide.lean), [user guide](docs/GUIDE.md),
 and [API reference](docs/API.md). For a guided source review, read the
 [proof architecture](docs/IMPLEMENTATION.md). The website includes usage examples and an option reference.
 
@@ -131,4 +131,4 @@ lake -d docbuild exe site check-docs
 
 ## AI Use
 
-Waterfall was primarily developed by GPT-6 Astra. This README was written my me. 
+Waterfall was primarily developed by GPT-6 Astra. This README was written by me.

@@ -1,8 +1,8 @@
 # Software Foundations examples
 
-[Docs/Examples.lean](../Docs/Examples.lean) contains three self-contained Lean
+[Tutorial/Examples.lean](../Tutorial/Examples.lean) contains three self-contained Lean
 adaptations of Software Foundations examples. Run `lake test`, or after
-`lake build` run `lake env lean Docs/Examples.lean`. They need only this package.
+`lake build` run `lake env lean Tutorial/Examples.lean`. They need only this package.
 Every helper theorem is proved in the file. The examples keep the source
 algorithms and specifications, with Lean constructor names and standard lists;
 they do not import the larger benchmark's established-theorem assumptions.

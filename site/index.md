@@ -64,7 +64,7 @@ and lemmas that are not registered for rewriting or instantiation. Supplied recu
 definitions also expose candidates for `fun_induction` and `fun_cases`. Library theorem
 application does not search for arbitrary rewrite rules.
 
-The [compiled tutorial](../Docs/Guide.lean) gives invocation examples; the [SF
+The [compiled tutorial](../Tutorial/Guide.lean) gives invocation examples; the [SF
 examples](examples.md) show some complete proofs.
 
 <a id="proof-hints"></a>
@@ -188,6 +188,6 @@ The package depends only on Lean, targets 4.33.1, and is also tested on 4.30.0. 
 must use a matching toolchain. Its tactics are exported by `import waterfall`.
 Lake records the resolved Git commit in `lake-manifest.json`. 
 
-[Lean tutorial](../Docs/Guide.lean)
+[Lean tutorial](../Tutorial/Guide.lean)
 
 </section>
