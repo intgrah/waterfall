@@ -38,13 +38,12 @@ def fillTemplate (source : String) (fields : Array (String × String)) : String 
     | some (_, value) => value ++ String.ofList (chars.drop key.length)
     | none => "$" ++ part)
 
-/-- Copy bytes so that downloadable compressed logs retain their original contents. -/
+/-- Recursively copy downloadable source files without changing their bytes. -/
 partial def copyTree (source target : FilePath) : IO Unit := do
   if ← source.isDir then
     IO.FS.createDirAll target
     for entry in ← source.readDir do
-      unless entry.fileName == "__pycache__" || entry.path.extension == some "pyc" do
-        copyTree entry.path (target / entry.fileName)
+      copyTree entry.path (target / entry.fileName)
   else
     IO.FS.writeBinFile target (← IO.FS.readBinFile source)
 
@@ -81,7 +80,7 @@ def build (root : FilePath) : IO Unit := do
     IO.FS.writeFile (output / s!"{name}.html") html
   copyTree (source / "style.css") (output / "style.css")
   IO.FS.createDirAll (output / "source")
-  for name in #["Tutorial", "waterfall", "Tests", "docs", "LICENSE"] do
+  for name in #["Tutorial", "LICENSE"] do
     copyTree (root / name) (output / "source" / name)
   IO.println s!"Built {output / "index.html"}"
 

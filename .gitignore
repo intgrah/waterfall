@@ -1,6 +1,3 @@
 .lake/
 site/.lake/
-site/api/
-__pycache__/
-*.pyc
 dist/

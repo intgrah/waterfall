@@ -5,7 +5,7 @@ open Lean Meta Elab Tactic waterfall waterfall.Observe
 set_option Elab.async false
 set_option maxHeartbeats 0
 
-namespace ReviewFixes
+namespace waterfallRegressionTest
 
 -- The last sibling cannot close until induction on an earlier sibling supplies
 -- their witness. An empty induction expansion must continue the agenda scan.
@@ -192,4 +192,4 @@ example : True := by
   run_tac discard <| cancelledWork true
   trivial
 
-end ReviewFixes
+end waterfallRegressionTest
