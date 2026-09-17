@@ -111,8 +111,8 @@ instantiation rules can be supplied in brackets.
 | `deferChecks` | `false` | Delay candidate applicability probes |
 | `report` | `false` | Print search statistics |
 
-See the [compiled Lean tutorial](Tutorial/Guide.lean), [user guide](docs/GUIDE.md),
-and [API reference](docs/API.md). For a guided source review, read the
+See the [compiled Lean tutorial](Tutorial/Guide.lean) and
+[API reference](docs/API.md). For a guided source review, read the
 [proof architecture](docs/IMPLEMENTATION.md). The website includes usage examples and an option reference.
 
 Use `waterfall (cpus := 4)` to explore different depth/strength trials of the

@@ -19,9 +19,13 @@ identify a step by its group and its original ordinal.
 
 Smaller proof operations have their own names too. `simplification` configures
 the same strength-scaled simplifier for closure and normalization. `caseAlternatives`
-offers the registered view before raw cases. `chooseImplicitWitnesses` proposes
-one constructor layer for an implicit data argument; every unresolved field
-remains an obligation. `MotivePlan` records which variables to generalize and
+offers the registered view before raw cases and respects Lean's
+`tactic.customEliminators` option. `chooseImplicitWitnesses` proposes one
+constructor layer for one implicit argument whose type visibly reduces to an
+inductive type; it does not synthesize nested terms, multiple witnesses, or
+arbitrary lemma arguments. Every unresolved constructor field remains an
+obligation. Local functions can also be applied to data-valued goals, including
+Type-valued induction hypotheses. `MotivePlan` records which variables to generalize and
 whether to abstract fixed indices with equations; `inductWithMotive` performs
 that preparation, induction, and reintroduction of dependent assumptions.
 

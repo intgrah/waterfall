@@ -54,6 +54,9 @@ theorem fast_elements_helper (t : Tree V) (acc : List (Nat × V)) :
 
 ## Usage
 
+`waterfall` closes the complete displayed proof state. If search fails, it restores the input
+proof state, so it can also be tried as the last tactic in an existing branch.
+
 `waterfall` uses local hypotheses, Lean’s registered `simp` and `grind` rules, and definitions
 referenced in the goal or hypotheses that originate in the current module. Local hypotheses support both
 backward application and forward instantiation.
@@ -133,7 +136,11 @@ Both `waterfall` and `waterfall?` accept individual options or a structure such 
 
 `attemptHeartbeats` is the base raw-heartbeat slice per operation, scaled by trial strength and
 capped by the enclosing remaining allowance. Lean’s `maxHeartbeats` uses thousands of raw
-heartbeats. These limits are independent of the attempt budget and of `maxRecDepth`.
+heartbeats. These limits are independent of the attempt budget and of `maxRecDepth`. A proof
+that needs more total work also needs a larger enclosing `set_option maxHeartbeats ... in` limit.
+
+`report := true` prints the attempts, visited nodes, successful trial depth and strength, raw
+heartbeat use, and the retained operation labels.
 
 <a id="parallel"></a>
 
