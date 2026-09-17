@@ -1,5 +1,8 @@
-import waterfall.Core
-import waterfall.Choices
+module
+public import waterfall.Core
+public import waterfall.Choices
+
+meta section
 
 /-!
 An ACL2-like policy over the shared search interface. This module contains no
@@ -11,7 +14,7 @@ inherit only their own proof ancestry. Restrictions are deliberately opt-in.
 open Lean Meta Elab Tactic
 namespace waterfall.Committed
 
-structure State where
+public structure State where
   shaped : Bool := false
   induced : Bool := false
   reverted : Bool := false
@@ -34,7 +37,7 @@ private def rank (g : MVarId) (candidate : Candidate) : MetaM Nat := do
 A miss belongs only to this scan: any accepted sibling step can assign shared
 metavariables and make an earlier goal solvable. The next scan starts fresh.
 `first` wraps this entire sequence, not each generator batch separately. -/
-def choose (space : Space State) : Choices (Node State) := Choices.first fun visit => do
+public def choose (space : Space State) : Choices (Node State) := Choices.first fun visit => do
   let node := space.current
   let state := node.state
   for focus in [:node.jobs.length] do
@@ -78,7 +81,7 @@ def choose (space : Space State) : Choices (Node State) := Choices.first fun vis
 trial schedule is a committed heuristic, not a fair enumeration of proof paths.
 Weighted costs retain the current engine's library floor; this is not a byte-for-
 byte reproduction of the earlier standalone experiment's transformation count. -/
-def hooks : Hooks := {
+public def hooks : Hooks := {
   policy := ⟨State, {}, choose⟩
   trials := fun round => #[(4 * (round + 1) + 4, round + 1)]
   cost := fun _ _ candidate => pure candidate.move.cost

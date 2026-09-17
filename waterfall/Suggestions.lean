@@ -1,4 +1,7 @@
-import waterfall.Core
+module
+public import waterfall.Core
+
+meta section
 
 /-!
 Compile a retained proof path into ordinary Lean tactics. This module is a
@@ -17,10 +20,10 @@ initialize registerTraceClass `waterfall.suggestions
 
 /-- Only accepted steps are recorded, so failed alternatives never enter a hint.
 Allocate this recorder inside each parallel worker, just like other middleware. -/
-abbrev Path := Array (Selection × Tactic.SavedState)
+public abbrev Path := Array (Selection × Tactic.SavedState)
 
 /-- A checked replacement and whether it required the proof-term fallback. -/
-structure Script where
+public structure Script where
   tactic : TSyntax `tactic
   text : String
   usedTerm : Bool
@@ -188,7 +191,7 @@ private partial def inlineAuxiliaries (original : Environment) (proof : Expr) : 
 /-- Produce a checked standalone script, restoring the winning proof afterward.
 The saved final expressions are fully instantiated before restoring the input:
 no worker-local metavariable or elaborator hole may escape into the suggestion. -/
-def compile (initial : Tactic.SavedState) (roots : List MVarId)
+public def compile (initial : Tactic.SavedState) (roots : List MVarId)
     (path : Path) (rules : Array (TSyntax `term)) : TacticM Script := do
   let winning ← Tactic.saveState
   let proofs ← roots.mapM fun g => instantiateMVars (mkMVar g)
@@ -240,7 +243,7 @@ def compile (initial : Tactic.SavedState) (roots : List MVarId)
 
 /-- Install the standard Lean editor hint after checking its literal replacement.
 The span is the whole invocation, including configuration and rule arguments. -/
-def run (ref : Syntax) (rules : Array (TSyntax `term))
+public def run (ref : Syntax) (rules : Array (TSyntax `term))
     (hooks : Hooks) (use : Hooks → TacticM Stats) : TacticM Stats := do
   let initial ← Tactic.saveState
   let roots ← getUnsolvedGoals

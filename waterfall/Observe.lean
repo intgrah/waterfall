@@ -1,5 +1,8 @@
-import waterfall.Core
-import waterfall.Canonical
+module
+public import waterfall.Core
+public import waterfall.Canonical
+
+meta section
 
 /-!
 Opt-in experiment middleware and exact-plan replay. The proof engine neither
@@ -10,7 +13,7 @@ All mutable observation state lives outside Lean's rollback snapshots.
 open Lean Meta Elab Tactic
 namespace waterfall.Observe
 
-structure Cost where
+public structure Cost where
   nanos : Nat := 0
   heartbeats : Nat := 0
   deriving Repr, Inhabited, ToJson, FromJson
@@ -24,7 +27,7 @@ private def subtract (a b : Cost) : Cost :=
 private def add (a b : Cost) : Cost :=
   ⟨a.nanos + b.nanos, a.heartbeats + b.heartbeats⟩
 
-structure Row where
+public structure Row where
   id : Nat
   parent : Option Nat
   span : Span
@@ -34,7 +37,7 @@ structure Row where
   exclusive : Cost
   deriving Repr, Inhabited, ToJson, FromJson
 
-structure Step where
+public structure Step where
   action : ActionId
   induction : InductionKind := .none
   label : String -- diagnostic only; fresh user names are deliberately not keys
@@ -46,7 +49,7 @@ structure Step where
   focus : Nat := 0
   deriving Repr, Inhabited, ToJson, FromJson
 
-structure Plan where
+public structure Plan where
   -- Version 3 records agenda selection; version 2 implicitly selects the head.
   version : Nat := 3
   /-- Caller-supplied immutable source/theory identity, e.g. a manifest digest.
@@ -58,7 +61,7 @@ structure Plan where
   steps : Array Step
   deriving Repr, Inhabited, ToJson, FromJson
 
-structure Report where
+public structure Report where
   success : Bool := false
   error : Option String := none
   rows : Array Row := #[]
@@ -68,11 +71,11 @@ structure Report where
 /-- Limits are middleware, not another engine scheduler. A per-span cap can
 only reduce the parent allowance. Deadlines are cooperative: checked between
 spans, with hard process timeouts still owned by the benchmark executor. -/
-structure Control where
+public structure Control where
   slice : Span → TacticM (Option Nat) := fun _ => pure none
   deadlineNanos : Option Nat := none
 
-def Control.around (control : Control) (span : Span) (_ : α → Outcome)
+public def Control.around (control : Control) (span : Span) (_ : α → Outcome)
     (body : TacticM α) : TacticM α := do
   if let some deadline := control.deadlineNanos then
     if (← IO.monoNanosNow) >= deadline then throwError "waterfall experiment deadline"
@@ -89,19 +92,15 @@ def Control.around (control : Control) (span : Span) (_ : α → Outcome)
     if (← IO.monoNanosNow) >= deadline then throwError "waterfall experiment deadline"
   return result
 
-private structure Frame where
-  id : Nat
-  children : Cost := {}
-
-structure Recorder where
+public structure Recorder where
   rows : IO.Ref (Array Row)
-  stack : IO.Ref (List Frame)
+  stack : IO.Ref (List (Nat × Cost))
   nextId : IO.Ref Nat
   accepted : IO.Ref (Array Step)
   costs : Bool := true
   plans : Bool := true
 
-def Recorder.create (costs := true) (plans := true) : BaseIO Recorder := do
+public def Recorder.create (costs := true) (plans := true) : BaseIO Recorder := do
   return ⟨← IO.mkRef #[], ← IO.mkRef [], ← IO.mkRef 0, ← IO.mkRef #[], costs, plans⟩
 
 private def Recorder.around (recorder : Recorder) (span : Span) (outcome : α → Outcome)
@@ -109,28 +108,28 @@ private def Recorder.around (recorder : Recorder) (span : Span) (outcome : α �
   if !recorder.costs then return ← body
   let id ← recorder.nextId.get
   recorder.nextId.modify (· + 1)
-  let parent := (← recorder.stack.get).head?.map (·.id)
-  recorder.stack.modify (⟨id, {}⟩ :: ·)
+  let parent := (← recorder.stack.get).head?.map (·.1)
+  recorder.stack.modify ((id, {}) :: ·)
   let start ← clock
   let finish (value : Outcome) (exception : Bool) : TacticM Unit := do
     let elapsed := subtract (← clock) start
     -- Finalization only updates IO records. It never executes proof operations
     -- with a renewed allowance, including after a runtime resource exception.
     withTheReader Core.Context (fun c => { c with maxHeartbeats := 0 }) do
-      let frame :: rest ← recorder.stack.get | throwError "unbalanced cost spans"
-      unless frame.id == id do throwError "misnested cost spans"
+      let (frameId, children) :: rest ← recorder.stack.get | throwError "unbalanced cost spans"
+      unless frameId == id do throwError "misnested cost spans"
       recorder.stack.set (match rest with
         | [] => []
-        | p :: ps => { p with children := add p.children elapsed } :: ps)
+        | (parentId, parentChildren) :: ps => (parentId, add parentChildren elapsed) :: ps)
       recorder.rows.modify (·.push {
         id, parent, span, outcome := value, exception,
-        inclusive := elapsed, exclusive := subtract elapsed frame.children })
+        inclusive := elapsed, exclusive := subtract elapsed children })
   let result ← tryCatchRuntimeEx (Except.ok <$> body) fun ex => pure (.error ex)
   match result with
   | .ok value => finish (outcome value) false; return value
   | .error ex => finish {} true; throw ex
 
-def Recorder.hooks (recorder : Recorder) (control : Control := {}) (inner : Hooks := {}) : Hooks := { inner with
+public def Recorder.hooks (recorder : Recorder) (control : Control := {}) (inner : Hooks := {}) : Hooks := { inner with
   around := fun span outcome body =>
     recorder.around span outcome (control.around span outcome (inner.around span outcome body))
   accepted := fun selection saved => do
@@ -151,7 +150,7 @@ private def ruleKeys (rules : Array (TSyntax `term)) : Array String :=
 
 /-- Capture a complete run, including failure. Callers deciding to use this as a
 closing tactic must reject `success = false`; no error is converted to a proof. -/
-def capture (cfg : Config) (rules : Array (TSyntax `term)) (key : String)
+public def capture (cfg : Config) (rules : Array (TSyntax `term)) (key : String)
     (costs := true) (plans := true) (control : Control := {}) (hooks : Hooks := {}) : TacticM Report := do
   let recorder ← Recorder.create costs plans
   let input ← if plans then Canonical.snapshot (← getUnsolvedGoals) else pure ""
@@ -171,7 +170,7 @@ def capture (cfg : Config) (rules : Array (TSyntax `term)) (key : String)
 /-- Execute only the recorded moves, preserving the conjunctive agenda and
 original strengths. No alternative is tried if a guard or selected move fails.
 Every failure restores the caller's entire proof/elaborator snapshot. -/
-def replay (plan : Plan) (rules : Array (TSyntax `term)) (key : String)
+public def replay (plan : Plan) (rules : Array (TSyntax `term)) (key : String)
     (hooks : Hooks := {}) : TacticM Unit := do
   let saved ← Tactic.saveState
   let roots ← getUnsolvedGoals

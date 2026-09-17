@@ -1,4 +1,7 @@
-import Lean
+module
+public import Lean
+
+meta section
 
 /-!
 Read-only, structural guards for the optional search/replay laboratory. This is
@@ -162,7 +165,7 @@ does not change it. Sharing, types, local values, universe equations and the
 restrictions on metavariable assignment do. Unsupported/stale references fail
 closed; environment/rules/options must be checked by the plan interpreter too.
 -/
-def snapshot (goals : List MVarId) : TacticM String := do
+public def snapshot (goals : List MVarId) : TacticM String := do
   let context ← getMCtx
   let postponed := (← getThe Meta.State).postponed.toArray
   let (value, _) ← (encode goals postponed).run { context }

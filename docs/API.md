@@ -1,7 +1,10 @@
 # API reference
 
 Lean doc comments provide hover documentation in the editor. `Tutorial/Guide.lean`
-is a compiled tutorial. The library exports the following small interfaces.
+is a compiled tutorial. `Tests/PublicAPI.lean` checks the declaration-level
+interface below, while `Tests/ModuleImport.lean` and `Tests/Import.lean` check
+module and ordinary source-file consumers. The library exports the following
+small interfaces.
 
 | Module | Responsibility |
 | --- | --- |

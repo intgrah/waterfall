@@ -1,4 +1,7 @@
-import Lean
+module
+public import Lean
+
+meta section
 
 /-!
 The small interface between proof search and optional experiments. This module
@@ -17,7 +20,7 @@ namespace waterfall
 -- the search more opportunities to reach both deeper plans and stronger moves.
 /-- Engine resource and enumeration controls. `effort` is the usual tuning knob.
 All heartbeat counts here are raw, unlike Lean's `maxHeartbeats` option units. -/
-structure Config where
+public structure Config where
   /-- Global number of attempted proof operations, including failed branches. -/
   effort : Nat := 1000
   /-- Base raw heartbeat slice for an operation; trial strength scales it.
@@ -35,7 +38,7 @@ structure Config where
 -- `choices` comes from the winning checkpoint's plan after the whole trial
 -- succeeds. Its reverse chronological order is for diagnostics, not execution.
 /-- Work spent across all attempted branches, plus the winning proof path. -/
-structure Stats where
+public structure Stats where
   attempts : Nat := 0
   nodes : Nat := 0
   depth : Nat := 0
@@ -46,7 +49,7 @@ structure Stats where
 
 /-- Groups retain the original operation order. Their generators can be delayed
 independently; reordering groups must retain every group to preserve reachability. -/
-inductive Group where
+public inductive Group where
   /-- Leaf solvers; an accepted move must leave no child obligations. -/
   | close
   /-- Introductions, extensionality, normalization and target splitting. -/
@@ -65,16 +68,16 @@ inductive Group where
   | induction
   deriving BEq, Repr, Inhabited, ToJson, FromJson
 
-def structuralGroups : Array Group :=
+public def structuralGroups : Array Group :=
   #[.basic, .hypotheses, .rules, .library, .forward, .functions, .induction]
 
-inductive InductionKind where
+public inductive InductionKind where
   | none | data | evidence | functional
   deriving BEq, Repr, Inhabited, ToJson, FromJson
 
 /-- Deferred inference plus typed policy metadata. Only the engine owns rollback
 and acceptance of its complete continuation. Noninduction is the default. -/
-structure Move where
+public structure Move where
   cost : Nat := 1
   label : String
   run : TacticM Unit
@@ -104,20 +107,20 @@ structure Move where
 
 /-- An ordinal in a versioned generator, not a fresh Lean identifier or display
 label. Replay also verifies the complete input agenda and generated child count. -/
-structure ActionId where
+public structure ActionId where
   group : Group
   index : Nat
   deriving BEq, Repr, Inhabited, ToJson, FromJson
 
-structure Candidate where
+public structure Candidate where
   action : ActionId
   move : Move
 
-inductive Phase where
+public inductive Phase where
   | run | trial | node | enumerate | action | continuation
   deriving BEq, Repr, Inhabited, ToJson, FromJson
 
-structure Span where
+public structure Span where
   phase : Phase
   depth : Nat := 0
   strength : Nat := 1
@@ -129,7 +132,7 @@ structure Span where
 
 /-- Explicit outcomes avoid mistaking a normally returned `false` for success.
 Enumeration supplies a count; exceptions are observed by the middleware itself. -/
-structure Outcome where
+public structure Outcome where
   success : Option Bool := none
   count : Option Nat := none
   deriving Repr, Inhabited, ToJson, FromJson
@@ -137,7 +140,7 @@ structure Outcome where
 /-- A retained proof step: which operation was chosen, the full input agenda,
 and the number of premises it generated. Its input checkpoint is stored alongside
 it in `Node.plan`; observing local success alone does not retain a step. -/
-structure Selection where
+public structure Selection where
   replayable : Bool
   action : ActionId
   induction : InductionKind
@@ -153,10 +156,10 @@ structure Selection where
 /-- Lazy, effectful enumeration. `visit` returning true stops enumeration.
 The producer runs no later alternative until the visitor has returned false.
 This continuation representation avoids an eager array of proof snapshots. -/
-abbrev Choices (α : Type) := (α → TacticM Bool) → TacticM Bool
+public abbrev Choices (α : Type) := (α → TacticM Bool) → TacticM Bool
 
 /-- Siblings have independent ancestry; all goals share one Lean proof state. -/
-structure Job where
+public structure Job where
   goal : MVarId
   remaining : Nat
   ancestors : List Candidate := []
@@ -165,7 +168,7 @@ structure Job where
 /-- A complete search checkpoint, including the retained plan and arbitrary,
 typed policy state. It can be stored by another traversal algorithm as a frontier
 entry. Proof-search resource counters deliberately live outside this value. -/
-structure Node (σ : Type) where
+public structure Node (σ : Type) where
   saved : Tactic.SavedState
   jobs : List Job
   state : σ
@@ -176,7 +179,7 @@ cascade. Explicit batches permit scheduling and filtering across any goal.
 `restart` restores a checkpoint, installs policy state and charges one attempt;
 it is not a proof step and does not retain the abandoned plan. Exhausted work
 budgets disable expand/restart; policies may still select saved checkpoints. -/
-structure Space (σ : Type) where
+public structure Space (σ : Type) where
   current : Node σ
   root : Node σ
   expand : Nat → Array (Array Group) → (Candidate → Bool) → Choices (Node σ)
@@ -185,22 +188,22 @@ structure Space (σ : Type) where
 /-- One policy chooses an ordered lazy subsequence of local transitions. State
 is immutable along a branch and restored with that branch. The default is the
 existing head-first, exhaustive continuation search. -/
-structure SearchPolicy where
+public structure SearchPolicy where
   State : Type
   initial : State
   choose : Space State → Choices (Node State)
 
-def SearchPolicy.default : SearchPolicy := ⟨Unit, (), fun space => space.expand 0 #[] (fun _ => true)⟩
+public def SearchPolicy.default : SearchPolicy := ⟨Unit, (), fun space => space.expand 0 #[] (fun _ => true)⟩
 
 /-- A root-only prefix followed by diagonals, without revisiting prefix pairs.
 A prefix of one is ordinary diagonal deepening. Three reproduces the installed
 schedule. This helper is convenient, but policies may use any fair enumerator. -/
-def diagonalTrials (rootPrefix round : Nat) : Array (Nat × Nat) :=
+public def diagonalTrials (rootPrefix round : Nat) : Array (Nat × Nat) :=
   if round == 0 then (List.range (max 1 rootPrefix)).toArray.map (fun i => (0, i + 1))
   else (List.range (round + 1)).toArray.filterMap fun tier =>
     if tier == round && round < rootPrefix then none else some (round - tier, tier + 1)
 
-structure Hooks where
+public structure Hooks where
   /-- Reserve one attempted operation, including a checkpoint restart. Called
   before dispatch and outside rollback. Raising an exception stops the run.
   Schedulers can use this to share a work budget across isolated searches. -/
@@ -239,10 +242,10 @@ structure Hooks where
   order need not match the proof path; abandoned branches cannot enter the plan. -/
   accepted : Selection → Tactic.SavedState → TacticM Unit := fun _ _ => pure ()
 
-def Hooks.bool (hooks : Hooks) (span : Span) (body : TacticM Bool) : TacticM Bool :=
+public def Hooks.bool (hooks : Hooks) (span : Span) (body : TacticM Bool) : TacticM Bool :=
   hooks.around span (fun ok => { success := some ok }) body
 
-def Hooks.array (hooks : Hooks) (span : Span) (body : TacticM (Array α)) :
+public def Hooks.array (hooks : Hooks) (span : Span) (body : TacticM (Array α)) :
     TacticM (Array α) :=
   hooks.around span (fun values => { count := some values.size }) body
 

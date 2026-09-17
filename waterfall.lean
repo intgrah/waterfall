@@ -1,4 +1,6 @@
-import waterfall.Tactic
+module
+public import waterfall.Tactic
+
 
 /-! # waterfall
 

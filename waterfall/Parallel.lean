@@ -1,5 +1,8 @@
-import waterfall.Core
-import Std.Sync.Mutex
+module
+public import waterfall.Core
+public import Std.Sync.Mutex
+
+meta section
 
 /-!
 Parallel execution of one policy's existing depth/strength schedule. Round i
@@ -63,7 +66,7 @@ including cancellation and failure. An unlimited parent remains unlimited.
 Reservations are conservative: unused heartbeat shares are not redistributed.
 Cancellation is cooperative; this function drains all workers before returning.
 Workers have dedicated threads; operating-system affinity can limit CPU use. -/
-def run (cpus : Nat) (cfg : Config) (rules : Array (TSyntax `term) := #[])
+public def run (cpus : Nat) (cfg : Config) (rules : Array (TSyntax `term) := #[])
     (withHooks : (Hooks → TacticM Stats) → TacticM Stats := fun use => use {}) : TacticM Stats := do
   if cpus == 0 then throwError "waterfall cpus must be positive"
   if cpus == 1 || cfg.effort == 0 then return ← withHooks (fun hooks => waterfall.run cfg rules hooks)

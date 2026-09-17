@@ -1,6 +1,9 @@
-import waterfall.Parallel
-import waterfall.Committed
-import waterfall.Suggestions
+module
+public import waterfall.Parallel
+public import waterfall.Committed
+public import waterfall.Suggestions
+
+meta section
 
 /-! # The `waterfall` tactic
 
@@ -14,20 +17,20 @@ namespace waterfall
 
 /-- Two configurations of the same proof engine. `committed` discards alternatives
 after local progress; `search` retains backtracking over the full continuation. -/
-inductive Mode where
+public inductive Mode where
   | search
   | committed
   deriving Inhabited, BEq, Repr
 
 /-- The standard callbacks for a mode, available for programmatic adaptation. -/
-def Mode.hooks : Mode → Hooks
+public def Mode.hooks : Mode → Hooks
   | .search => {}
   | .committed => Committed.hooks
 
 /-- User-facing tactic options. The inherited `Config` fields control resources
 and enumeration. For custom search, ordering, costs and observation, adapt
 `Mode.hooks` and pass the callbacks to `waterfall.run`. -/
-structure Options extends Config where
+public structure Options extends Config where
   /-- Backtracking search by default; commitment is an explicit choice. -/
   mode : Mode := .search
   /-- Maximum concurrent workers. One uses the original sequential traversal.

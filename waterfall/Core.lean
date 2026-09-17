@@ -1,4 +1,12 @@
-import waterfall.Protocol
+module
+public import waterfall.Protocol
+public meta import Lean.Elab.Tactic.Induction
+public meta import Lean.Elab.Tactic.Grind.Main
+public meta import Lean.Meta.Tactic.Grind.Types
+public meta import Lean.Meta.Tactic.LibrarySearch
+public meta import Lean.Meta.Tactic.Split
+
+meta section
 
 /-!
 Lean-native inductive proof search. This engine imports only its protocol and
@@ -33,7 +41,7 @@ private def tacticMove (label : String) (stx : TSyntax `tactic) : Move :=
   { cost := 1, label := label, command? := some stx, run := evalTactic stx }
 
 /-- Applicability never commits a probe's assignments or refunds its work. -/
-def Move.applicable (move : Move) : TacticM Bool :=
+public def Move.applicable (move : Move) : TacticM Bool :=
   match move.check with
   | none => pure true
   | some probe => withoutModifyingState probe
@@ -421,7 +429,7 @@ private def inductOrAnalyzeData (g : MVarId) : TacticM (Array Move) := do
 
 /-- Generating one group never requires enumerating a later group. Values captured
 by its moves belong to this input snapshot, exactly as for eager enumeration. -/
-def movesFor (g : MVarId) (rules : Array (TSyntax `term)) (strength remaining : Nat)
+public def movesFor (g : MVarId) (rules : Array (TSyntax `term)) (strength remaining : Nat)
     (group : Group) : TacticM (Array Move) := do
   let moves ← match group with
   | .close => closeGoal rules strength
@@ -434,11 +442,11 @@ def movesFor (g : MVarId) (rules : Array (TSyntax `term)) (strength remaining : 
   | .induction => g.withContext <| inductOrAnalyzeData g
   return moves.map fun move => { move with checkLocalChange := true }
 
-def prepareRules (g : MVarId) (rules : Array (TSyntax `term)) : TacticM (Array (TSyntax `term)) := do
+public def prepareRules (g : MVarId) (rules : Array (TSyntax `term)) : TacticM (Array (TSyntax `term)) := do
   return rules ++ terms (← goalDefinitions g)
 
 /-- Compatibility interface for callers inspecting all structural moves. -/
-def operations (g : MVarId) (rules : Array (TSyntax `term)) (strength : Nat := 1)
+public def operations (g : MVarId) (rules : Array (TSyntax `term)) (strength : Nat := 1)
     (maxCost : Nat := 2) : TacticM (Array Move) :=
   structuralGroups.flatMapM fun group => do
     (← movesFor g rules strength maxCost group).filterM Move.applicable
@@ -456,7 +464,7 @@ private def conjectureShape (g : MVarId) : MetaM (List Expr) := g.withContext do
 /-- An attempt has a strength-scaled heartbeat slice, capped by the ambient remaining
 allowance. It cannot create a fresh budget after the parent is exhausted.
 -/
-def attempt (cfg : Config) (stats : IO.Ref Stats) (m : Move)
+public def attempt (cfg : Config) (stats : IO.Ref Stats) (m : Move)
     (charge : TacticM Unit := pure ()) : TacticM Bool := do
   let s ← stats.get
   if s.attempts >= cfg.effort then return false
@@ -486,7 +494,7 @@ def attempt (cfg : Config) (stats : IO.Ref Stats) (m : Move)
 /-- Expand one selected goal. The visitor sees a successful local transition,
 not a completed proof. Failed visitors restore the same input before the next
 proposal; costs and candidate ordinals are shared by every search policy. -/
-def expand (cfg : Config) (stats : IO.Ref Stats) (hooks : Hooks)
+public def expand (cfg : Config) (stats : IO.Ref Stats) (hooks : Hooks)
     (rules : Array (TSyntax `term)) (node : Node σ) (focus : Nat)
     (requested : Array (Array Group)) (admit : Candidate → Bool) : Choices (Node σ) := fun visit => do
   -- Exhaustion blocks new transitions, not selection of already-funded nodes.
@@ -623,7 +631,7 @@ private partial def proveAll (cfg : Config) (stats : IO.Ref Stats) (hooks : Hook
 
 /-- Shared by search and the optional exact-plan interpreter. Empty displayed
 goals alone are insufficient when a witness or another root remains unassigned. -/
-def checkComplete (original : List MVarId) : TacticM Unit := do
+public def checkComplete (original : List MVarId) : TacticM Unit := do
   for g in original do
     unless ← g.isAssigned do throwError "waterfall left an unassigned root"
     let proof ← instantiateMVars (mkMVar g)
@@ -633,7 +641,7 @@ def checkComplete (original : List MVarId) : TacticM Unit := do
 the same deterministic sequence without a top-k veto. Custom policies can prune.
 The ambient Lean heartbeat and recursion limits remain authoritative.
 -/
-def run (cfg : Config) (rules : Array (TSyntax `term) := #[])
+public def run (cfg : Config) (rules : Array (TSyntax `term) := #[])
     (hooks : Hooks := {}) : TacticM Stats := do
   let groups := hooks.batches.foldl (· ++ ·) #[]
   unless groups.size == structuralGroups.size && structuralGroups.all groups.contains do

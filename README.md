@@ -65,6 +65,9 @@ git = "https://github.com/samth/waterfall.git"
 rev = "main"
 ```
 
+`waterfall` is a Lean module. The same import works from module files and
+ordinary Lean source files.
+
 ## Usage and configuration options
 
 ```lean
