@@ -1,5 +1,4 @@
 .lake/
-consumer/lake-manifest.json
 site/.lake/
 site/api/
 __pycache__/

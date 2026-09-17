@@ -22,7 +22,6 @@ jobs:
           TEST_LEAN: ${{ matrix.lean }}
         run: |
           printf 'leanprover/lean4:%s\n' "$TEST_LEAN" > lean-toolchain
-          cp lean-toolchain consumer/lean-toolchain
       - uses: leanprover/lean-action@v1
         with:
           build: "true"
@@ -38,10 +37,6 @@ jobs:
       - run: lake exe site check-docs
         working-directory: site
       - run: lake env leanchecker Tutorial.Examples
-      - run: lake build
-        working-directory: consumer
-      - run: lake env leanchecker Consumer
-        working-directory: consumer
 
   website:
     runs-on: ubuntu-latest

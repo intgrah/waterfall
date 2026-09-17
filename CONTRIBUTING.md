@@ -12,10 +12,10 @@ lake build
 lake test
 ```
 
-Changes to the public interface should also be checked against the independent
-`consumer/` package. Website text and examples live in `site/*.md`; generated
-HTML is not committed. The documentation project validates the site and its
-Lean examples:
+`Tests/PublicAPI.lean`, `Tests/ModuleImport.lean`, and `Tests/Import.lean` check
+the supported interface and both module and ordinary source imports. Website
+text and examples live in `site/*.md`; generated HTML is not committed. The
+documentation project validates the site and its Lean examples:
 
 ```sh
 lake -d site test

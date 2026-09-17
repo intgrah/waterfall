@@ -191,8 +191,8 @@ git = "https://github.com/samth/waterfall.git"
 rev = "main"
 ```
 
-The package depends only on Lean, targets 4.33.1, and is also tested on 4.30.0. The consumer
-must use a matching toolchain. Its tactics are exported by `import waterfall`.
+The package depends only on Lean, targets 4.33.1, and is also tested on 4.30.0. A dependent
+project must use a matching toolchain. Its tactics are exported by `import waterfall`.
 Lake records the resolved Git commit in `lake-manifest.json`. 
 
 [Lean tutorial](../Tutorial/Guide.lean)
