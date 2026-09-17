@@ -1,6 +1,6 @@
 .lake/
 consumer/lake-manifest.json
-docbuild/.lake/
+site/.lake/
 site/api/
 __pycache__/
 *.pyc

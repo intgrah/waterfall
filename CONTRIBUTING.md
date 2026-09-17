@@ -18,8 +18,8 @@ HTML is not committed. The documentation project validates the site and its
 Lean examples:
 
 ```sh
-lake -d docbuild test
-lake -d docbuild exe site check-docs
+lake -d site test
+lake -d site exe site check-docs
 ```
 
 Keep proof operations separate from scheduling policy, observation middleware,

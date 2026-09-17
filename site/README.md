@@ -22,21 +22,24 @@ Generated HTML lives only in `dist/site/`, which Git ignores.
 From the repository root:
 
 ```sh
-lake -d docbuild build
-lake -d docbuild test
-lake -d docbuild exe site check
+lake -d site build
+lake -d site test
+lake -d site exe site check
 ```
 
 The generated `dist/site/index.html` can be opened in a browser. After building
 waterfall with `lake build`, the proof examples are checked with:
 
 ```sh
-lake -d docbuild exe site check-docs
+lake -d site exe site check-docs
 ```
 
-The [separate documentation package](../docbuild/README.md) uses pinned Lean
-Markdown and HTML libraries. The root waterfall package does not depend on it.
-No Python installation is needed for these tools.
+This directory is an independent Lake project using
+[lean-markdown](https://github.com/paulbutcher/lean-markdown), pinned by Git commit,
+with its dependencies locked in `lake-manifest.json`. The root waterfall package
+does not depend on it, and no Python installation is needed. `DocSite/Build.lean`
+renders the pages, `DocSite/Html.lean` reads generated HTML metadata, and
+`DocSite/Check.lean` checks links and compiles documentation examples.
 
 On pushes to `main`, GitHub Actions builds the site and publishes it to
 [GitHub Pages](https://samth.github.io/waterfall/) after the Lean checks pass.

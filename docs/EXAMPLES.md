@@ -83,7 +83,7 @@ rule. The same proof succeeds with `waterfall (mode := .committed)`. The final
 theorem specializes this lemma to `[]`.
 The equivalence applies to every tree; it needs no search-tree ordering invariant.
 The full definition and helper proof also appear in the README and are compiled
-from that literal code block by `lake -d docbuild exe site check-docs`.
+from that literal code block by `lake -d site exe site check-docs`.
 
 ## Proof hints and evaluation scope
 

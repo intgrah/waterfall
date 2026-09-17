@@ -31,12 +31,12 @@ jobs:
       - name: Build documentation tooling
         uses: leanprover/lean-action@v1
         with:
-          lake-package-directory: docbuild
+          lake-package-directory: site
           build: "true"
           test: "false"
           use-mathlib-cache: "false"
       - run: lake exe site check-docs
-        working-directory: docbuild
+        working-directory: site
       - run: lake env leanchecker Tutorial.Examples
       - run: lake build
         working-directory: consumer
@@ -52,12 +52,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: leanprover/lean-action@v1
         with:
-          lake-package-directory: docbuild
+          lake-package-directory: site
           build: "true"
           test: "true"
           use-mathlib-cache: "false"
       - run: lake exe site check
-        working-directory: docbuild
+        working-directory: site
       - name: Upload website
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v4

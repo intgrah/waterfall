@@ -48,7 +48,7 @@ partial def copyTree (source target : FilePath) : IO Unit := do
   else
     IO.FS.writeBinFile target (← IO.FS.readBinFile source)
 
-/-- Works from the repository root, docbuild/, or an explicitly supplied directory. -/
+/-- Works from the repository root, site/, or an explicitly supplied directory. -/
 partial def findRoot (directory : FilePath) : IO FilePath := do
   let directory ← IO.FS.realPath directory
   if (← (directory / "waterfall.lean").pathExists) &&

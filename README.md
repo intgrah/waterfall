@@ -127,9 +127,9 @@ CPU uses the existing sequential path. See [parallel execution](docs/API.md#para
 ```sh
 lake build
 lake test
-lake -d docbuild build
-lake -d docbuild test
-lake -d docbuild exe site check-docs
+lake -d site build
+lake -d site test
+lake -d site exe site check-docs
 ```
 
 ## AI Use
