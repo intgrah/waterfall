@@ -68,7 +68,7 @@ capability assessment; hashes in the JSON identify the exact input files.
 
 ## Separate proof-hint regression panel
 
-The later [111-goal proof-hint check](reviews/2026-09-11/SUGGESTIONS.md) includes
+The later [111-goal proof-hint check](https://github.com/samth/lean-waterfall/blob/main/docs/reviews/2026-09-16/waterfall-package-notes/docs/reviews/2026-09-11/SUGGESTIONS.md) includes
 **53 selected VFA goals**, a subset used for regression testing. Search closed
 43/53 and committed mode 34/53 at effort 10,000 and 800M raw heartbeats. Every
 emitted replacement was independently compiled. Those counts are neither a
