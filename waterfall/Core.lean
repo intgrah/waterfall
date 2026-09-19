@@ -192,10 +192,10 @@ private def caseAlternatives (g : MVarId) (id : FVarId) (recursive : Bool)
 /-- Introduce binders, expose pointwise equality, normalize, or split the target. -/
 private def prepareGoal (g : MVarId) (rules : Array (TSyntax `term)) (strength : Nat) : TacticM (Array Move) := do
   let mut out : Array Move := #[
-    { cost := 1, preparation := .allBinders, role := `prepare,
-      label := "introduce binders", run := liftMetaTactic fun goal => do return [(← goal.intros).2] },
     { cost := 1, preparation := .oneBinder, role := `prepare,
-      label := "intro", run := liftMetaTactic fun goal => do return [(← goal.intro `_).2] }]
+      label := "intro", run := liftMetaTactic fun goal => do return [(← goal.intro `_).2] },
+    { cost := 1, preparation := .allBinders, role := `prepare,
+      label := "introduce binders", run := liftMetaTactic fun goal => do return [(← goal.intros).2] }]
   -- Expose a pointwise obligation to the outer search. A failed leaf solver
   -- cannot return its internal extensionality steps for later induction/cases.
   let target ← whnf (← g.getType)

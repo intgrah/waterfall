@@ -47,18 +47,18 @@ public def blockedPremises (g : MVarId) : TacticM (Array Move) := g.withContext 
           setGoals [positive.mvarId, negative.mvarId] }
   return out
 
-/-- Exposing root binders can reveal a critic hidden by a quantified target.
-The temporary locals and candidate proposals are discarded after this probe. -/
+private def exposesBlockedPremise (g : MVarId) : TacticM Bool := withoutModifyingState do
+  try
+    g.withContext do
+      let (introduced, child) ← g.intros
+      if introduced.isEmpty then return false
+      return !(← blockedPremises child).isEmpty
+  catch _ => return false
+
+/-- Exposing root binders can reveal a critic hidden by a quantified target. -/
 public def prelude (goals : List MVarId) : TacticM (Array PreludeTrial) := do
   for g in goals do
-    let found ← withoutModifyingState do
-      try
-        g.withContext do
-          let (introduced, child) ← g.intros
-          if introduced.isEmpty then return false
-          return !(← blockedPremises child).isEmpty
-      catch _ => return false
-    if found then return #[{ depth := 5 }]
+    if ← exposesBlockedPremise g then return #[{ depth := 5 }]
   return #[]
 
 /-- Add critic proposals to an arbitrary policy. `early` enables the bounded
@@ -80,7 +80,14 @@ public def hooks (inner : Hooks := {}) (early := false) : Hooks := { inner with
           let some candidate := candidates.find? (·.action == action)
             | throwError "critic received an unknown ordered action"
           return candidate
-    return some ((ordered.filter (·.move.role == `critic) ++
-      ordered.filter (·.move.role != `critic)).map (·.action)) }
+    let critics := ordered.filter (·.move.role == `critic)
+    let others := ordered.filter (·.move.role != `critic)
+    let expose ← if early && others.any (·.move.preparation == .allBinders) then
+      exposesBlockedPremise g else pure false
+    let others := if expose then
+      others.filter (·.move.preparation == .allBinders) ++
+        others.filter (·.move.preparation != .allBinders)
+      else others
+    return some ((critics ++ others).map (·.action)) }
 
 end waterfall.Critics

@@ -77,13 +77,13 @@ example (p q r : Prop) (hp : p) (positive : p → q → r)
     critic.run
   all_goals grind
 
--- Preparation metadata is semantic policy input, and bulk introduction stays
--- ahead of its one-binder fallback without inspecting display labels.
+-- Preparation metadata is semantic policy input. The base generator retains
+-- its historical one-binder-first order; critic hooks may reorder typed moves.
 example : ∀ p : Prop, p → p := by
   run_tac
     let moves ← movesFor (← getMainGoal) #[] 1 1 .basic
-    unless moves[0]?.any (·.preparation == .allBinders) &&
-        moves[1]?.any (·.preparation == .oneBinder) do
+    unless moves[0]?.any (·.preparation == .oneBinder) &&
+        moves[1]?.any (·.preparation == .allBinders) do
       throwError "introduction metadata or order changed"
   intro p hp
   exact hp
