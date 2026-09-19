@@ -75,6 +75,24 @@ public inductive InductionKind where
   | none | data | evidence | functional
   deriving BEq, Repr, Inhabited, ToJson, FromJson
 
+/-- The shape of the motive prepared for an induction candidate. This is policy
+metadata: schedulers should not have to recover semantic choices from labels. -/
+public inductive InductionMotive where
+  | direct | localGeneralization | indexAbstraction
+  | localGeneralizationAndIndexAbstraction
+  deriving BEq, Repr, Inhabited, ToJson, FromJson
+
+/-- A forward-chaining argument represented without elaborating the constructor
+applications during candidate enumeration. Repeating `wrapper` exactly
+`wrapperApplications` times around `argumentSeed` identifies the argument that
+the candidate will construct in its own rollback-protected checkpoint. -/
+public structure ForwardInstantiation where
+  hypothesis : FVarId
+  argumentSeed : Expr
+  wrapper : Option Name := none
+  wrapperApplications : Nat := 0
+  deriving Inhabited
+
 /-- Deferred inference plus typed policy metadata. Only the engine owns rollback
 and acceptance of its complete continuation. Noninduction is the default. -/
 public structure Move where
@@ -90,12 +108,16 @@ public structure Move where
   /-- False when replay needs state or proof inputs absent from the ordinary plan. -/
   replayable : Bool := true
   induction : InductionKind := .none
+  motive : InductionMotive := .direct
   /-- Semantic metadata for scheduling, independent of display labels. -/
   major : Option FVarId := none
   /-- Optional subject for inspecting or explaining an operation. Like `major`,
   its free variables belong to the operation's input checkpoint. Search policies
   need not use it; rendering must not recover it by rerunning the inference. -/
   subject : Option Expr := none
+  /-- Stable forward-chaining metadata. This recipe avoids retaining temporary
+  elaboration metavariables in the search tree. -/
+  forward? : Option ForwardInstantiation := none
   /-- An ordinary command proposal, when the adapter already constructs one.
   Explanations must recheck its printed text in the input checkpoint. Dispatch
   and policy selection never depend on this optional presentation metadata. -/
@@ -144,6 +166,7 @@ public structure Selection where
   replayable : Bool
   action : ActionId
   induction : InductionKind
+  motive : InductionMotive := .direct
   label : String
   role : Name := .anonymous
   strength : Nat
