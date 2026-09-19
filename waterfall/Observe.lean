@@ -40,6 +40,7 @@ public structure Row where
 public structure Step where
   action : ActionId
   induction : InductionKind := .none
+  preparation : PreparationKind := .none
   label : String -- diagnostic only; fresh user names are deliberately not keys
   input : String
   strength : Nat
@@ -142,6 +143,7 @@ public def Recorder.hooks (recorder : Recorder) (control : Control := {}) (inner
       Canonical.snapshot selection.agenda
     recorder.accepted.modify (·.push {
       action := selection.action, induction := selection.induction, label := selection.label, input,
+      preparation := selection.preparation,
       strength := selection.strength, remaining := selection.remaining,
       cost := selection.cost, children := selection.children, focus := selection.focus }) }
 
@@ -207,7 +209,7 @@ public def replay (plan : Plan) (rules : Array (TSyntax `term)) (key : String)
         g.withContext <| hooks.cost g
           { phase := .node, depth := step.remaining, strength := step.strength }
           { action := step.action, move }
-      unless step.induction == move.induction && step.cost == cost &&
+      unless step.induction == move.induction && step.preparation == move.preparation && step.cost == cost &&
           (step.action.group == .close || step.cost >= max 1 move.cost) &&
           step.cost <= step.remaining && step.strength > 0 do
         throwError "waterfall plan cost mismatch"

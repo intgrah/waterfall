@@ -1,5 +1,5 @@
 module
-public import waterfall.Protocol
+public import waterfall.Execution
 public meta import Lean.Elab.Tactic.Induction
 public meta import Lean.Elab.Tactic.Grind.Main
 public meta import Lean.Meta.Tactic.Grind.Types
@@ -35,16 +35,8 @@ open Lean Meta Elab Tactic
 
 namespace waterfall
 
-initialize registerTraceClass `waterfall.search
-
 private def tacticMove (label : String) (stx : TSyntax `tactic) : Move :=
   { cost := 1, label := label, command? := some stx, run := evalTactic stx }
-
-/-- Applicability never commits a probe's assignments or refunds its work. -/
-public def Move.applicable (move : Move) : TacticM Bool :=
-  match move.check with
-  | none => pure true
-  | some probe => withoutModifyingState probe
 
 /-- Only definitions originating in the current module are unfolded implicitly.
 Imported theories can supply their definitions and laws through the rule list.
@@ -200,26 +192,28 @@ private def caseAlternatives (g : MVarId) (id : FVarId) (recursive : Bool)
 /-- Introduce binders, expose pointwise equality, normalize, or split the target. -/
 private def prepareGoal (g : MVarId) (rules : Array (TSyntax `term)) (strength : Nat) : TacticM (Array Move) := do
   let mut out : Array Move := #[
-    { cost := 1, role := `prepare, label := "intro", run := liftMetaTactic fun goal => do return [(← goal.intro `_).2] },
-    { cost := 1, role := `prepare, label := "introduce binders", run := liftMetaTactic fun goal => do return [(← goal.intros).2] }]
+    { cost := 1, preparation := .allBinders, role := `prepare,
+      label := "introduce binders", run := liftMetaTactic fun goal => do return [(← goal.intros).2] },
+    { cost := 1, preparation := .oneBinder, role := `prepare,
+      label := "intro", run := liftMetaTactic fun goal => do return [(← goal.intro `_).2] }]
   -- Expose a pointwise obligation to the outer search. A failed leaf solver
   -- cannot return its internal extensionality steps for later induction/cases.
   let target ← whnf (← g.getType)
   if let some (_, lhs, _) := target.eq? then
     if (← whnf (← inferType lhs)).isForall then
-      out := out.push { cost := 1, role := `prepare, label := "function extensionality", run := do
+      out := out.push { cost := 1, preparation := PreparationKind.pointwise, role := `prepare, label := "function extensionality", run := do
         let [child] ← g.apply (← mkConstWithFreshMVarLevels ``funext)
           | throwError "not a function equality"
         setGoals [(← child.intros).2] }
   -- Normalization is also a structural alternative. Unlike the closing simp
   -- above, it may leave changed goals for further planning and be rolled back.
-  out := out.push { (tacticMove "normalize" (← simplification rules strength)) with role := `prepare }
-  out := out.push { cost := 1, label := "split target", run := liftMetaTactic fun goal => do
+  out := out.push { (tacticMove "normalize" (← simplification rules strength)) with
+    preparation := .normalization, role := `prepare }
+  out := out.push { cost := 1, preparation := .targetSplit, label := "split target", run := liftMetaTactic fun goal => do
     let some children ← splitTarget? goal | throwError "no target split"
     return children }
   return out
 
-/-- Split hypothesis expressions and invert inductive evidence. -/
 private def analyzeHypotheses (g : MVarId) : TacticM (Array Move) := do
   let mut out : Array Move := #[]
   -- Decompose propositions before speculative induction on data.
@@ -469,36 +463,6 @@ private def conjectureShape (g : MVarId) : MetaM (List Expr) := g.withContext do
     if !d.isImplementationDetail then es := (← instantiateMVars d.type) :: es
   return es
 
-/-- An attempt has a strength-scaled heartbeat slice, capped by the ambient remaining
-allowance. It cannot create a fresh budget after the parent is exhausted.
--/
-public def attempt (cfg : Config) (stats : IO.Ref Stats) (m : Move)
-    (charge : TacticM Unit := pure ()) : TacticM Bool := do
-  let s ← stats.get
-  if s.attempts >= cfg.effort then return false
-  charge
-  -- Count the attempt before running it, including failures and exhausted slices.
-  -- Enumeration itself is charged to the ambient heartbeat budget, not this count.
-  -- One Move is one attempt; its internal alternatives are not counted separately.
-  stats.modify fun s => { s with attempts := s.attempts + 1 }
-  let ctx ← readThe Core.Context
-  let now ← IO.getNumHeartbeats
-  let allowance := cfg.attemptHeartbeats * s.strength
-  let remaining := if ctx.maxHeartbeats == 0 then allowance
-    else (ctx.initHeartbeats + ctx.maxHeartbeats - now)
-  let cap := min remaining allowance
-  if cap == 0 then return false
-  tryCatchRuntimeEx (do
-    -- Runtime resource exceptions are normal failed alternatives. Error-to-sorry
-    -- recovery is disabled so a partial or admitted result cannot pass as success.
-    withTheReader Core.Context (fun c => { c with initHeartbeats := now, maxHeartbeats := cap }) do
-      Term.withoutErrToSorry <| withoutRecover m.run
-    trace[waterfall.search] "{m.label}: goals={(← getUnsolvedGoals).length}"
-    -- The final check also catches operations that return after overspending.
-    return decide ((← IO.getNumHeartbeats) - now <= cap)) fun ex => do
-    trace[waterfall.search] "{m.label}: {ex.toMessageData}"
-    return false
-
 /-- Expand one selected goal. The visitor sees a successful local transition,
 not a completed proof. Failed visitors restore the same input before the next
 proposal; costs and candidate ordinals are shared by every search policy. -/
@@ -587,6 +551,7 @@ public def expand (cfg : Config) (stats : IO.Ref Stats) (hooks : Hooks)
             goal := g, remaining := job.remaining - cost, ancestors := candidate :: job.ancestors }
           let selected : Selection := {
             replayable := m.replayable, action, induction := m.induction,
+            preparation := m.preparation,
             label := m.label, role := m.role,
             strength, remaining := job.remaining, cost, children := children.length,
             agenda := node.jobs.map (·.goal), focus, motive := m.motive }
@@ -638,14 +603,6 @@ private partial def proveAll (cfg : Config) (stats : IO.Ref Stats) (hooks : Hook
     unless ok do node.saved.restore true
     return ok
 
-/-- Shared by search and the optional exact-plan interpreter. Empty displayed
-goals alone are insufficient when a witness or another root remains unassigned. -/
-public def checkComplete (original : List MVarId) : TacticM Unit := do
-  for g in original do
-    unless ← g.isAssigned do throwError "waterfall left an unassigned root"
-    let proof ← instantiateMVars (mkMVar g)
-    if proof.hasMVar || proof.hasSorry then throwError "waterfall produced an incomplete proof"
-
 /-- Public proof interface. Under the default policy, additional effort extends
 the same deterministic sequence without a top-k veto. Custom policies can prune.
 The ambient Lean heartbeat and recursion limits remain authoritative.
@@ -660,20 +617,32 @@ public def run (cfg : Config) (rules : Array (TSyntax `term) := #[])
   let stats ← IO.mkRef ({} : Stats)
   let start ← IO.getNumHeartbeats
   tryCatchRuntimeEx (hooks.around { phase := .run } (fun _ => { success := some true }) do
-    let proveAtDepthAndStrength (depth strength : Nat) : TacticM Bool := do
+    let proveAtDepthAndStrength (trialCfg : Config) (depth strength : Nat) : TacticM Bool := do
       saved.restore true
       stats.modify fun s => { s with depth, strength }
       let root : Node hooks.policy.State := {
         saved, jobs := original.map (Job.mk · depth []),
         state := hooks.policy.initial }
       let win ← IO.mkRef []
-      let ok ← hooks.bool { phase := .trial, depth, strength } (proveAll cfg stats hooks rules root root win)
+      let ok ← hooks.bool { phase := .trial, depth, strength }
+        (proveAll trialCfg stats hooks rules root root win)
       if ok then
         for (selection, snapshot) in ← win.get do
           hooks.accepted selection snapshot
           stats.modify fun s => { s with choices := s.choices.push selection.label }
       return ok
     let mut success := false
+    -- Prelude work is deliberately bounded twice: by its own request and by a
+    -- quarter of the public effort. Failed speculative guidance therefore
+    -- leaves most of the original schedule available even at small budgets.
+    for trial in ← hooks.prelude original do
+      if success || (← stats.get).attempts >= cfg.effort then break
+      unless trial.strength > 0 do throwError "waterfall prelude strength must be positive"
+      let spent := (← stats.get).attempts
+      let allowance := min trial.attempts (cfg.effort / 4)
+      if allowance == 0 then continue
+      let trialCfg := { cfg with effort := min cfg.effort (spent + allowance) }
+      if ← proveAtDepthAndStrength trialCfg trial.depth trial.strength then success := true
     -- One policy enumerates the entire run. Every trial spends the same global
     -- allowance; neither a new round nor a failed branch refunds earlier work.
     -- A fair policy visits every finite (depth, positive strength) pair as the
@@ -683,7 +652,7 @@ public def run (cfg : Config) (rules : Array (TSyntax `term) := #[])
       for (depth, strength) in hooks.trials round do
         if (← stats.get).attempts >= cfg.effort then break
         unless strength > 0 do throwError "waterfall trial strength must be positive"
-        if ← proveAtDepthAndStrength depth strength then
+        if ← proveAtDepthAndStrength cfg depth strength then
           success := true
           break
     let s ← stats.get

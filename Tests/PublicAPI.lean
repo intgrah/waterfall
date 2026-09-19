@@ -4,6 +4,7 @@ import waterfall.Canonical
 import waterfall.Choices
 import waterfall.Committed
 import waterfall.Core
+import waterfall.Critics
 import waterfall.Observe
 import waterfall.Parallel
 import waterfall.Protocol
@@ -18,12 +19,14 @@ run_cmd do
   for name in [
       `waterfall.Config, `waterfall.Stats, `waterfall.Group,
       `waterfall.structuralGroups, `waterfall.InductionKind,
-      `waterfall.InductionMotive, `waterfall.ForwardInstantiation, `waterfall.Move,
+      `waterfall.PreparationKind, `waterfall.InductionMotive,
+      `waterfall.ForwardInstantiation, `waterfall.Move,
       `waterfall.Move.applicable, `waterfall.ActionId, `waterfall.Candidate,
       `waterfall.Phase, `waterfall.Span, `waterfall.Outcome,
       `waterfall.Selection, `waterfall.Choices, `waterfall.Job,
       `waterfall.Node, `waterfall.Space, `waterfall.SearchPolicy,
-      `waterfall.SearchPolicy.default, `waterfall.diagonalTrials,
+      `waterfall.SearchPolicy.default, `waterfall.PreludeTrial,
+      `waterfall.diagonalTrials,
       `waterfall.Hooks, `waterfall.Hooks.bool, `waterfall.Hooks.array,
       `waterfall.Canonical.snapshot,
       `waterfall.Choices.first, `waterfall.Choices.filter,
@@ -32,6 +35,8 @@ run_cmd do
       `waterfall.Committed.State, `waterfall.Committed.choose,
       `waterfall.Committed.hooks,
       `waterfall.movesFor, `waterfall.prepareRules, `waterfall.operations,
+      `waterfall.Critics.blockedPremises, `waterfall.Critics.prelude,
+      `waterfall.Critics.hooks,
       `waterfall.attempt, `waterfall.expand, `waterfall.checkComplete,
       `waterfall.run,
       `waterfall.Observe.Cost, `waterfall.Observe.Row,

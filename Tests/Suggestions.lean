@@ -107,6 +107,23 @@ example (P Q : Prop) (h : P ∧ Q) : Q ∧ P := by
 example (f g : Nat → Nat) (h : ∀ x, f x = g x) : f = g := by
   check_hint "canonHeartbeats" => strong_hint "grind"
 
+-- Extension moves are regenerated through the same hooks during compilation.
+-- A blocked-premise critic prints a checked ordinary `by_cases` command.
+elab "critic_hint" : tactic => do
+  let base : waterfall.Hooks := {
+    trials := fun _ => #[(4, 1)]
+    policy := ⟨Unit, (), fun space =>
+      if space.current.plan.isEmpty then
+        space.expand 0 #[#[.hypotheses]] (fun c => c.move.role == `critic)
+      else space.expand 0 #[] (fun _ => true)⟩ }
+  let hooks := waterfall.Critics.hooks base
+  discard <| waterfall.Suggestions.run (← getRef) #[] hooks
+    (fun h => waterfall.run { effort := 100 } #[] h)
+
+example (p q r : Prop) (hp : p) (positive : p → q → r)
+    (negative : ¬q → r) : r := by
+  check_hint "by_cases" => critic_hint
+
 -- A constructor that closes a data goal is an ordinary application, not a
 -- reason to print the entire proof term of a surrounding induction.
 inductive HintToken where

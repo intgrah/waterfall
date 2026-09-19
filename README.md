@@ -97,7 +97,9 @@ The default `mode := .search` is the default backtracking mode. `mode := .commit
 `waterfall?` provides a “Try this” editor hint that replaces the invocation
 with ordinary Lean proof commands. Use `(report := true)` for search statistics.
 Local hypotheses, registered `simp` and `grind` rules, and definitions from the
-current module are used automatically. waterfall also retrieves library theorems
+current module are used automatically. When a local rule matches the target
+except for one missing proposition, waterfall can split on that blocked premise
+and continue each case. waterfall also retrieves library theorems
 for backward application. Imported definitions and additional rewrite or
 instantiation rules can be supplied in brackets.
 

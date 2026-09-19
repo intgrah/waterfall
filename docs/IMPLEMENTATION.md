@@ -33,7 +33,7 @@ that preparation, induction, and reintroduction of dependent assumptions.
 
 `expand` selects one `Job` from a `Node`, prepares rules, and lazily enumerates
 the requested stages. Each candidate receives its stable identifier before
-applicability filtering or policy reordering. `attempt` charges the global work
+applicability filtering or policy reordering. `Execution.attempt` charges the global work
 allowance and runs one inference inside a bounded heartbeat slice. A closer is
 accepted only if it leaves no children. Built-in steps request local stutter
 pruning: a single unchanged conjecture is rejected by `conjectureShape`.
@@ -49,11 +49,14 @@ for an existential may make its first premise true and its second false. The
 default policy can restore the entire earlier state and try another witness.
 Proving siblings independently and combining their assignments would be wrong.
 
-`run` calls `proveAtDepthAndStrength` along the configured trial schedule. Depth
+`run` first executes any bounded `PreludeTrial`s requested by the installed
+hooks, then calls `proveAtDepthAndStrength` along the configured fair trial schedule. A
+failed prelude can use at most one quarter of total effort and cannot remove a
+later trial. Depth
 limits structural proof steps; strength increases solver limits and their
 heartbeat slices. Effort counts attempts across every failed branch and trial.
 Only after the whole agenda closes are retained `Selection`s delivered to
-observers. `checkComplete` verifies every original root has a proof without
+observers. `Execution.checkComplete` verifies every original root has a proof without
 unresolved metavariables or direct sorry terms. Lean checks the declarations.
 
 ## Where the other pieces belong
@@ -62,6 +65,13 @@ unresolved metavariables or direct sorry terms. Lean checks the declarations.
 resource `Config`, spent-work `Stats`, proof `Move`s and `Selection`s, pending
 `Job`s, compatible `Node`s, and the policy's `Space`. Moving Config and Stats here
 keeps these interfaces together; it does not reduce the total implementation.
+
+[Execution.lean](../waterfall/Execution.lean) meters one deferred move and
+performs final root validation. [Critics.lean](../waterfall/Critics.lean) is a
+standard hook extension. Its blocked-premise critic proposes a case split only
+when a local rule already matches the target except for one proposition and at
+least one other premise is present. Search mode enables its bounded early trial;
+committed mode uses the same proof operation without the early trial.
 
 The default policy follows every continuation in order. [Committed.lean](../waterfall/Committed.lean)
 uses the same operations with first-progress commitment, ordinary work before
@@ -83,15 +93,16 @@ Meta operations have frontend recipes for induction, cases and constructors.
 Fixed-index induction prints equation-preserving `generalize` commands first.
 Forward instantiation prints `have` using the small derivation supplied to
 `MVarId.note`, recovered from the winning assignment. It uses `case'` to select a later sibling while preserving the other
-goals' order. If command rendering fails, it prints the completed proof term,
+goals' order. Extension moves are regenerated with their installed hooks; the
+blocked-premise critic prints `by_cases` from its typed subject. If command rendering fails, it prints the completed proof term,
 inlining solver-generated auxiliary declarations. Only a checked replacement is
 offered through Lean's editor hint. Each parallel worker has its own recorder;
 only the winning worker's hint is retained.
 
 ## Size and refactoring limits
 
-The engine remains 499 noncomment lines. Including the complete protocol gives
-622; the default import is 1,051, including the 200-line suggestion frontend.
-Optional observation adds 317 lines. These recorded counts include all local
-helpers; moving shared declarations is not counted as an overall reduction. The
-hint frontend adds no inference family, search policy, or external dependency.
+`Core.lean` remains below the established limit at 498 noncomment lines.
+Metered single-move execution is 36 lines and the critic extension is 67 lines.
+The separation keeps proof search, operation execution and optional guidance
+independently reviewable. The hint frontend adds no inference family, search
+policy, or external dependency.

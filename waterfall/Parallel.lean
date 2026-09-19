@@ -90,6 +90,7 @@ public def run (cpus : Nat) (cfg : Config) (rules : Array (TSyntax `term) := #[]
         let task ← fork cancel cap <| withHooks fun inner => do
           let hooks : Hooks := { inner with
             trials := fun round => if round % cpus == lane then inner.trials round else #[]
+            prelude := fun goals => if lane == 0 then inner.prelude goals else pure #[]
             charge := do
               Core.checkInterrupted
               let admitted ← ledger.atomically do

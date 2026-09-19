@@ -1,6 +1,6 @@
 import waterfall
 
-open Lean Elab Tactic waterfall
+open Lean Meta Elab Tactic waterfall
 
 namespace waterfallTest
 
@@ -60,6 +60,53 @@ example : True := by
 example (p q : Prop) (b : Bool) (h : if b then p else q) : p ∨ q := by
   check_local_operation "split hypothesis"
   all_goals simp_all
+
+-- A local rule whose conclusion matches the goal modulo one missing premise
+-- suggests that premise as a case split. The negative rule closes the branch
+-- in which the first rule remains blocked.
+example (p q r : Prop) (hp : p) (positive : p → q → r)
+    (negative : ¬q → r) : r := by
+  run_tac
+    let g ← getMainGoal
+    let moves ← Critics.blockedPremises g
+    let some critic := moves.find? (·.role == `critic)
+      | throwError "missing blocked-premise critic"
+    unless critic.major == some (← getFVarId (mkIdent `positive)) &&
+        critic.subject == some (mkFVar (← getFVarId (mkIdent `q))) do
+      throwError "critic lost its source rule or stable blocker"
+    critic.run
+  all_goals grind
+
+-- Preparation metadata is semantic policy input, and bulk introduction stays
+-- ahead of its one-binder fallback without inspecting display labels.
+example : ∀ p : Prop, p → p := by
+  run_tac
+    let moves ← movesFor (← getMainGoal) #[] 1 1 .basic
+    unless moves[0]?.any (·.preparation == .allBinders) &&
+        moves[1]?.any (·.preparation == .oneBinder) do
+      throwError "introduction metadata or order changed"
+  intro p hp
+  exact hp
+
+-- Prelude inference is read-only and requires a critic exposed by introducing
+-- root binders. An ordinary implication does not request speculative search.
+example : True := by
+  run_tac
+    let outer ← Tactic.saveState
+    let guided ← mkFreshExprSyntheticOpaqueMVar (← Term.elabType
+      (← `(term| ∀ p q r : Prop, p → (p → q → r) → (¬q → r) → r)))
+    setGoals [guided.mvarId!]
+    let trials ← Critics.prelude [guided.mvarId!]
+    unless trials.size == 1 && trials[0]!.depth == 5 &&
+        trials[0]!.strength == 1 && trials[0]!.attempts == 128 do
+      throwError "blocked-premise prelude was not inferred"
+    outer.restore true
+    let plain ← mkFreshExprSyntheticOpaqueMVar (← Term.elabType (← `(term| ∀ p : Prop, p → p)))
+    setGoals [plain.mvarId!]
+    unless (← Critics.prelude [plain.mvarId!]).isEmpty do
+      throwError "ordinary implication received a critic prelude"
+    outer.restore true
+  trivial
 
 example (P : Nat → Prop) (h : ∀ n, P n) : P 0 := by
   check_local_operation "forward hypothesis"

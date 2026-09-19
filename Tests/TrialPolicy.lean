@@ -52,6 +52,37 @@ elab "check_trial_dispatch" : tactic => do
 
 example : True := by check_trial_dispatch; trivial
 
+-- A speculative prelude cannot consume more than a quarter of public effort,
+-- even when it asks for more. The unchanged fair schedule continues afterward.
+elab "check_bounded_prelude" : tactic => do
+  let outer ← Tactic.saveState
+  let root ← mkFreshExprSyntheticOpaqueMVar (mkConst ``False)
+  setGoals [root.mvarId!]
+  let current ← IO.mkRef 0
+  let counts ← IO.mkRef (#[] : Array Nat)
+  let hooks : Hooks := {
+    prelude := fun _ => pure #[{ depth := 1, attempts := 128 }]
+    extraMoves := fun _ _ _ _ group => do
+      if group != .basic then return #[]
+      return (List.range 20).toArray.map fun _ => {
+        cost := 1, label := "failed prelude fixture", run := throwError "fixture" }
+    around := fun span _ body => do
+      if span.phase == .trial then
+        current.set 0
+        try
+          return ← body
+        finally counts.modify (·.push (← current.get))
+      if span.phase == .action then current.modify (· + 1)
+      body }
+  let closed ← tryCatchRuntimeEx (do
+    discard <| run { effort := 40, attemptHeartbeats := 2000000 } #[] hooks
+    pure true) fun _ => pure false
+  unless !closed && (← counts.get)[0]? == some 10 do
+    throwError "prelude exceeded its bounded effort share"
+  outer.restore true
+
+example : True := by check_bounded_prelude; trivial
+
 -- Intrinsic closer costs distinguish ordinary leaves from constructor leaves
 -- without parsing diagnostic names or depending on action ordinals in a policy.
 example : True := by

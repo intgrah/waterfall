@@ -87,7 +87,7 @@ re-elaboration add overhead beyond discovery; both modes and parallel execution 
 
 ## Search and commitment
 
-The goal of `waterfall` is to combine Lean-style proofs with ACL2-style search. It will automatically consider induction, case analysis, and simplification, and if one of those fails, it will backtrack and try another. 
+The goal of `waterfall` is to combine Lean-style proofs with ACL2-style search. It automatically considers induction, case analysis, and simplification, and if one of those fails, it backtracks and tries another. When a local rule is blocked by one missing proposition, it can use that proposition as a focused case split.
 
 The default policy performs depth-first search over complete proof continuations, with iterative
 deepening in structural cost and solver strength. A checkpoint includes all sibling obligations

@@ -1,6 +1,7 @@
 module
 public import waterfall.Parallel
 public import waterfall.Committed
+public import waterfall.Critics
 public import waterfall.Suggestions
 
 meta section
@@ -24,8 +25,8 @@ public inductive Mode where
 
 /-- The standard callbacks for a mode, available for programmatic adaptation. -/
 public def Mode.hooks : Mode → Hooks
-  | .search => {}
-  | .committed => Committed.hooks
+  | .search => Critics.hooks (early := true)
+  | .committed => Critics.hooks Committed.hooks
 
 /-- User-facing tactic options. The inherited `Config` fields control resources
 and enumeration. For custom search, ordering, costs and observation, adapt

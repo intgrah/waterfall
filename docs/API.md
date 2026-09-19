@@ -9,8 +9,10 @@ small interfaces.
 | Module | Responsibility |
 | --- | --- |
 | `waterfall` / `waterfall.Tactic` | `waterfall`, `waterfall?`, `Mode`, `Options` |
-| `waterfall.Core` | `run`, engine transitions and root validation |
+| `waterfall.Core` | `run` and engine transitions |
 | `waterfall.Protocol` | `Config`, `Stats`, `Move`, `Candidate`, `Job`, `Node`, `Space`, `SearchPolicy`, `Hooks` |
+| `waterfall.Execution` | Metered move execution and final root validation |
+| `waterfall.Critics` | Guarded blocked-premise moves and bounded search guidance |
 | `waterfall.Choices` | Generic lazy selection, filtering, collection and commitment |
 | `waterfall.Parallel` | Isolated concurrent trials, shared work accounting and cancellation |
 | `waterfall.Committed` | ACL2-inspired callbacks over the shared engine |
@@ -39,7 +41,7 @@ not rolled back. `Stats.choices` contains retained labels in reverse proof order
 `waterfall?` installs `Suggestions.run` inside each worker. It records only
 accepted steps and gives the winning proof a checked editor replacement.
 `Suggestions.compile` accepts the input checkpoint, original goals, retained
-path and rules; it returns `Script` (`tactic`, `text`, `usedTerm`) while restoring
+path, rules and optional hooks; it returns `Script` (`tactic`, `text`, `usedTerm`) while restoring
 the completed proof. It reparses the printed text and requires all original
 obligations to close with error recovery disabled. The inference operations and
 accepted-step hook contract are unchanged. `Move.subject` identifies the
@@ -71,6 +73,9 @@ expansion and restart are refused. Ambient limits still constrain traversal.
 - `charge`: reserve one operation before dispatch, including checkpoint restarts.
   Exceptions stop the run; reservations and external effects are not rolled back.
 - `policy`: choose transitions, agenda order and traversal.
+- `prelude`: infer bounded depth/strength trials from the original goals. Each
+  request has its own attempt cap and the engine also limits all such work to
+  one quarter of public effort. The ordinary `trials` schedule remains intact.
 - `trials`: finite batches of depth/positive-strength pairs by round.
 - `batches`: lazy structural groups; each original group must occur exactly once.
 - `order`: a permutation of candidate selectors within a batch; validated.
@@ -79,6 +84,13 @@ expansion and restart are refused. Ambient limits still constrain traversal.
 - `extraMoves`: append general operations without renumbering the originals.
 - `around`: polymorphic middleware around a span and continuation.
 - `accepted`: observe only the retained complete proof's selections, in reverse order.
+
+`Move.preparation` distinguishes one-binder introduction, bulk introduction,
+pointwise equality, normalization and target splitting. Policies should use
+this typed field rather than diagnostic labels. `Critics.hooks` composes with an
+arbitrary existing policy: it appends guarded case-split proposals and places
+them first without dropping any candidate. Search mode enables its early
+goal-directed prelude; committed mode shares the moves and ordering only.
 
 An observer calls its continuation once and leaves proof state alone. Resource
 control middleware can reduce allowances or abort spans. The engine owns proof
@@ -137,7 +149,8 @@ example (P : Prop) (h : P) : P := by
       use (recorder.hooks {} Mode.search.hooks)
 ```
 
-Round `i` of `Hooks.trials` belongs to worker `i % cpus`. No trial is duplicated,
+Round `i` of `Hooks.trials` belongs to worker `i % cpus`; bounded prelude trials
+belong to worker zero. No trial is duplicated,
 and all callbacks otherwise describe one policy. The first observed complete
 proof wins; ordering among simultaneous completions is unspecified. This
 parallelizes iterative deepening, not sibling proof obligations or branches

@@ -110,18 +110,24 @@ private def inductionCommand (step : Selection) (major : FVarId) :
 /-- Render the common proof vocabulary. Display labels only select proposed
 recipes; they are never trusted as replay identifiers or evidence of correctness.
 The final independent elaboration is mandatory even for an all-tactic script. -/
-private def command (step : Selection) (rules : Array (TSyntax `term))
+private def command (step : Selection) (rules : Array (TSyntax `term)) (hooks : Hooks)
     (forwardProof? : Option Expr) :
     TacticM (TSyntax `tactic) := withMainContext do
   let g ← getMainGoal
   let rules ← prepareRules g rules
   let moves ← movesFor g rules step.strength step.remaining step.action.group
+  let moves := moves ++ (← hooks.extraMoves g rules step.strength step.remaining step.action.group)
   let some move := moves[step.action.index]? | throwError "unknown proof operation"
   if let some command := move.command? then
     -- The engine runs an operation with its siblings outside the goal list.
     -- In particular, a closing `done` must not inspect those pending siblings.
     if step.action.group == .close then return ← `(tactic| focus ($command:tactic))
     return command
+  if move.role == `critic then
+    let some subject := move.subject | throwError "missing critic subject"
+    let proposition ← PrettyPrinter.delab subject
+    let name := mkIdent ((← getLCtx).getUnusedName `wf_blocker)
+    return ← `(tactic| by_cases $name:ident : $proposition)
   if step.action.group == .functions then return ← functionalCommand move
   -- Resolve constructor names from the target's declaration, avoiding parsing
   -- a display name back into a Lean identifier (which can contain quoted dots).
@@ -193,7 +199,7 @@ private partial def inlineAuxiliaries (original : Environment) (proof : Expr) : 
 The saved final expressions are fully instantiated before restoring the input:
 no worker-local metavariable or elaborator hole may escape into the suggestion. -/
 public def compile (initial : Tactic.SavedState) (roots : List MVarId)
-    (path : Path) (rules : Array (TSyntax `term)) : TacticM Script := do
+    (path : Path) (rules : Array (TSyntax `term)) (hooks : Hooks := {}) : TacticM Script := do
   let winning ← Tactic.saveState
   let proofs ← roots.mapM fun g => instantiateMVars (mkMVar g)
   try
@@ -216,7 +222,7 @@ public def compile (initial : Tactic.SavedState) (roots : List MVarId)
         -- case' puts the selected goal's children before the other siblings,
         -- exactly as Space.expand does. A cyclic rotation would reorder them.
         evalTactic (← `(tactic| expose_names))
-        let tac ← command step rules forwardProof?
+        let tac ← command step rules hooks forwardProof?
         if step.focus == 0 then
           commands := commands.push (← `(tactic| expose_names))
           commands := commands.push tac
@@ -252,7 +258,7 @@ public def run (ref : Syntax) (rules : Array (TSyntax `term))
   let stats ← use { hooks with accepted := fun step saved => do
     hooks.accepted step saved
     path.modify (·.push (step, saved)) }
-  let script ← Term.withoutTacticIncrementality true <| compile initial roots (← path.get) rules
+  let script ← Term.withoutTacticIncrementality true <| compile initial roots (← path.get) rules hooks
   Meta.Tactic.TryThis.addSuggestion ref script.tactic (origSpan? := ref)
   return stats
 

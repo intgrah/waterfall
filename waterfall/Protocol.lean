@@ -75,6 +75,13 @@ public inductive InductionKind where
   | none | data | evidence | functional
   deriving BEq, Repr, Inhabited, ToJson, FromJson
 
+/-- The proof-shaping operation proposed by a preparation move. Policies use
+this field instead of diagnostic labels when choosing how much of a goal to
+expose before branching. -/
+public inductive PreparationKind where
+  | none | oneBinder | allBinders | pointwise | normalization | targetSplit
+  deriving BEq, Repr, Inhabited, ToJson, FromJson
+
 /-- The shape of the motive prepared for an induction candidate. This is policy
 metadata: schedulers should not have to recover semantic choices from labels. -/
 public inductive InductionMotive where
@@ -108,6 +115,7 @@ public structure Move where
   /-- False when replay needs state or proof inputs absent from the ordinary plan. -/
   replayable : Bool := true
   induction : InductionKind := .none
+  preparation : PreparationKind := .none
   motive : InductionMotive := .direct
   /-- Semantic metadata for scheduling, independent of display labels. -/
   major : Option FVarId := none
@@ -166,6 +174,7 @@ public structure Selection where
   replayable : Bool
   action : ActionId
   induction : InductionKind
+  preparation : PreparationKind := .none
   motive : InductionMotive := .direct
   label : String
   role : Name := .anonymous
@@ -218,6 +227,15 @@ public structure SearchPolicy where
 
 public def SearchPolicy.default : SearchPolicy := ⟨Unit, (), fun space => space.expand 0 #[] (fun _ => true)⟩
 
+/-- A bounded speculative trial before the ordinary fair schedule. The engine
+also limits `attempts` to one quarter of the run's total effort, so a failed
+prelude cannot consume the main search. -/
+public structure PreludeTrial where
+  depth : Nat
+  strength : Nat := 1
+  attempts : Nat := 128
+  deriving Repr, Inhabited
+
 /-- A root-only prefix followed by diagonals, without revisiting prefix pairs.
 A prefix of one is ordinary diagonal deepening. Three reproduces the installed
 schedule. This helper is convenient, but policies may use any fair enumerator. -/
@@ -232,6 +250,9 @@ public structure Hooks where
   Schedulers can use this to share a work budget across isolated searches. -/
   charge : TacticM Unit := pure ()
   policy : SearchPolicy := .default
+  /-- Goal-directed, bounded trials run before `trials`. They may improve
+  finite-budget ordering but cannot remove any trial from the fair schedule. -/
+  prelude : List MVarId → TacticM (Array PreludeTrial) := fun _ => pure #[]
   /-- Finite batches of trials. For eventual reachability, visit every finite
   depth and positive strength; effort truncates this one sequence globally. -/
   trials : Nat → Array (Nat × Nat) := diagonalTrials 3
