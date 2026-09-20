@@ -5,10 +5,13 @@ import waterfall.Choices
 import waterfall.Committed
 import waterfall.Core
 import waterfall.Critics
+import waterfall.InductionPlan
 import waterfall.Observe
+import waterfall.Operations
 import waterfall.Parallel
 import waterfall.Protocol
 import waterfall.Suggestions
+import waterfall.Scheduling
 
 open Lean Elab Command
 
@@ -19,12 +22,14 @@ run_cmd do
   for name in [
       `waterfall.Config, `waterfall.Stats, `waterfall.Group,
       `waterfall.structuralGroups, `waterfall.InductionKind,
-      `waterfall.PreparationKind, `waterfall.InductionMotive,
+      `waterfall.PreparationKind, `waterfall.ClosureKind, `waterfall.InductionMotive,
+      `waterfall.InductionSummary,
       `waterfall.ForwardInstantiation, `waterfall.Move,
       `waterfall.Move.applicable, `waterfall.ActionId, `waterfall.Candidate,
       `waterfall.Phase, `waterfall.Span, `waterfall.Outcome,
-      `waterfall.Selection, `waterfall.Choices, `waterfall.Job,
-      `waterfall.Node, `waterfall.Space, `waterfall.SearchPolicy,
+      `waterfall.Selection, `waterfall.Choices, `waterfall.Job, `waterfall.TrialOrigin,
+      `waterfall.Node, `waterfall.Prepared, `waterfall.Proposal,
+      `waterfall.Space, `waterfall.SearchPolicy,
       `waterfall.SearchPolicy.default, `waterfall.PreludeTrial,
       `waterfall.diagonalTrials,
       `waterfall.Hooks, `waterfall.Hooks.bool, `waterfall.Hooks.array,
@@ -32,12 +37,23 @@ run_cmd do
       `waterfall.Choices.first, `waterfall.Choices.filter,
       `waterfall.Choices.map, `waterfall.Choices.append,
       `waterfall.Choices.collect, `waterfall.Node.mapState,
+      `waterfall.Proposal.mapState,
       `waterfall.Committed.State, `waterfall.Committed.choose,
       `waterfall.Committed.hooks,
       `waterfall.movesFor, `waterfall.prepareRules, `waterfall.operations,
       `waterfall.Critics.blockedPremises, `waterfall.Critics.prelude,
+      `waterfall.Critics.exposesBlockedPremise, `waterfall.Critics.needsPrelude,
       `waterfall.Critics.hooks,
-      `waterfall.attempt, `waterfall.expand, `waterfall.checkComplete,
+      `waterfall.InductionPlan.Plan, `waterfall.InductionPlan.equivalent,
+      `waterfall.InductionPlan.deduplicate, `waterfall.InductionPlan.quality,
+      `waterfall.InductionPlan.ordered, `waterfall.InductionPlan.toMoves,
+      `waterfall.InductionPlan.dominates,
+      `waterfall.InductionPlan.hooks,
+      `waterfall.Scheduling.State, `waterfall.Scheduling.depthForEffort,
+      `waterfall.Scheduling.choose, `waterfall.Scheduling.hooks,
+      `waterfall.attempt, `waterfall.prepareProposals, `waterfall.proposePrepared,
+      `waterfall.propose, `waterfall.executeProposal,
+      `waterfall.expand, `waterfall.checkComplete,
       `waterfall.run,
       `waterfall.Observe.Cost, `waterfall.Observe.Row,
       `waterfall.Observe.Step, `waterfall.Observe.Plan,

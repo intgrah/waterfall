@@ -48,6 +48,15 @@ namespace waterfall.Node
 For example, a FIFO frontier can store `Node Unit` and attach its updated queue
 only when the traversal selects that entry. -/
 public def mapState (f : α → β) (node : Node α) : Node β :=
-  { saved := node.saved, jobs := node.jobs, state := f node.state, plan := node.plan }
+  { saved := node.saved, jobs := node.jobs, state := f node.state,
+    origin := node.origin, plan := node.plan }
 
 end waterfall.Node
+
+namespace waterfall.Proposal
+
+/-- Replace traversal bookkeeping while retaining the proposal's checkpoint. -/
+public def mapState (f : α → β) (proposal : Proposal α) : Proposal β :=
+  { proposal with source := proposal.source.mapState f }
+
+end waterfall.Proposal

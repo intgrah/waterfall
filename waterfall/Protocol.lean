@@ -82,11 +82,30 @@ public inductive PreparationKind where
   | none | oneBinder | allBinders | pointwise | normalization | targetSplit
   deriving BEq, Repr, Inhabited, ToJson, FromJson
 
+/-- The kind of terminal reasoning performed by a closing move. This is
+semantic scheduling metadata, independent of structural path cost and labels. -/
+public inductive ClosureKind where
+  | none | exact | arithmetic | simplification | saturation | constructor
+  deriving BEq, Repr, Inhabited, ToJson, FromJson
+
 /-- The shape of the motive prepared for an induction candidate. This is policy
 metadata: schedulers should not have to recover semantic choices from labels. -/
 public inductive InductionMotive where
   | direct | localGeneralization | indexAbstraction
   | localGeneralizationAndIndexAbstraction
+  deriving BEq, Repr, Inhabited, ToJson, FromJson
+
+/-- Stable facts about an induction scheme. Expressions and local identifiers
+remain on the enclosing move; this summary is safe for policies, traces and
+recorded plans. `changingArguments` approximates the positions through which
+the proposed major value participates in recursive calls. -/
+public structure InductionSummary where
+  definition : Option Name := none
+  coveredCalls : Nat := 0
+  changingArguments : Array Nat := #[]
+  generalized : Nat := 0
+  abstractedIndices : Nat := 0
+  expectedCases : Nat := 0
   deriving BEq, Repr, Inhabited, ToJson, FromJson
 
 /-- A forward-chaining argument represented without elaborating the constructor
@@ -115,7 +134,9 @@ public structure Move where
   /-- False when replay needs state or proof inputs absent from the ordinary plan. -/
   replayable : Bool := true
   induction : InductionKind := .none
+  inductionSummary : Option InductionSummary := none
   preparation : PreparationKind := .none
+  closure : ClosureKind := .none
   motive : InductionMotive := .direct
   /-- Semantic metadata for scheduling, independent of display labels. -/
   major : Option FVarId := none
@@ -157,6 +178,7 @@ public structure Span where
   group : Option Group := none
   action : Option ActionId := none
   induction : InductionKind := .none
+  closure : ClosureKind := .none
   label : String := ""
   deriving Repr, Inhabited, ToJson, FromJson
 
@@ -174,7 +196,9 @@ public structure Selection where
   replayable : Bool
   action : ActionId
   induction : InductionKind
+  inductionSummary : Option InductionSummary := none
   preparation : PreparationKind := .none
+  closure : ClosureKind := .none
   motive : InductionMotive := .direct
   label : String
   role : Name := .anonymous
@@ -197,6 +221,12 @@ public structure Job where
   ancestors : List Candidate := []
   deriving Inhabited
 
+/-- Policies may distinguish a bounded speculative contour from the ordinary
+fair schedule without recognizing a depth value or inspecting mutable counters. -/
+public inductive TrialOrigin where
+  | prelude | fair
+  deriving BEq, Repr, Inhabited, ToJson, FromJson
+
 /-- A complete search checkpoint, including the retained plan and arbitrary,
 typed policy state. It can be stored by another traversal algorithm as a frontier
 entry. Proof-search resource counters deliberately live outside this value. -/
@@ -204,7 +234,27 @@ public structure Node (σ : Type) where
   saved : Tactic.SavedState
   jobs : List Job
   state : σ
+  origin : TrialOrigin := .fair
   plan : List (Selection × Tactic.SavedState) := []
+
+/-- Shared analysis for enumerating several candidate families at one focused
+node. Policies may request families lazily without repeating context traversal. -/
+public structure Prepared (σ : Type) where
+  source : Node σ
+  focus : Nat
+  inputShape : List Expr
+  rules : Array (TSyntax `term)
+
+/-- An ordered proof operation together with the checkpoint where it is
+applicable. Policies may retain proposals without executing their tactics. -/
+public structure Proposal (σ : Type) where
+  source : Node σ
+  focus : Nat
+  candidate : Candidate
+  cost : Nat
+  /-- The focused conjecture before execution. Sharing it across sibling
+  proposals avoids re-traversing the same context for each attempted move. -/
+  inputShape : List Expr
 
 /-- Engine-owned transition providers. Empty batches mean the installed default
 cascade. Explicit batches permit scheduling and filtering across any goal.
@@ -214,6 +264,12 @@ budgets disable expand/restart; policies may still select saved checkpoints. -/
 public structure Space (σ : Type) where
   current : Node σ
   root : Node σ
+  prepare : Node σ → Nat → TacticM (Option (Prepared σ))
+  /-- Enumerate operations from prepared shared analysis. The retained source
+  lets a policy delay later families without eagerly filling its frontier. -/
+  propose : Prepared σ → Array (Array Group) →
+    (Candidate → Bool) → Choices (Proposal σ)
+  execute : Proposal σ → Choices (Node σ)
   expand : Nat → Array (Array Group) → (Candidate → Bool) → Choices (Node σ)
   restart : Node σ → σ → Choices (Node σ)
 
@@ -252,7 +308,7 @@ public structure Hooks where
   policy : SearchPolicy := .default
   /-- Goal-directed, bounded trials run before `trials`. They may improve
   finite-budget ordering but cannot remove any trial from the fair schedule. -/
-  prelude : List MVarId → TacticM (Array PreludeTrial) := fun _ => pure #[]
+  prelude : Config → List MVarId → TacticM (Array PreludeTrial) := fun _ _ => pure #[]
   /-- Finite batches of trials. For eventual reachability, visit every finite
   depth and positive strength; effort truncates this one sequence globally. -/
   trials : Nat → Array (Nat × Nat) := diagonalTrials 3

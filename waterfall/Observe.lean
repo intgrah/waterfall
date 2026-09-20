@@ -40,7 +40,9 @@ public structure Row where
 public structure Step where
   action : ActionId
   induction : InductionKind := .none
+  inductionSummary : Option InductionSummary := none
   preparation : PreparationKind := .none
+  closure : ClosureKind := .none
   label : String -- diagnostic only; fresh user names are deliberately not keys
   input : String
   strength : Nat
@@ -143,7 +145,8 @@ public def Recorder.hooks (recorder : Recorder) (control : Control := {}) (inner
       Canonical.snapshot selection.agenda
     recorder.accepted.modify (·.push {
       action := selection.action, induction := selection.induction, label := selection.label, input,
-      preparation := selection.preparation,
+      inductionSummary := selection.inductionSummary,
+      preparation := selection.preparation, closure := selection.closure,
       strength := selection.strength, remaining := selection.remaining,
       cost := selection.cost, children := selection.children, focus := selection.focus }) }
 
@@ -209,7 +212,10 @@ public def replay (plan : Plan) (rules : Array (TSyntax `term)) (key : String)
         g.withContext <| hooks.cost g
           { phase := .node, depth := step.remaining, strength := step.strength }
           { action := step.action, move }
-      unless step.induction == move.induction && step.preparation == move.preparation && step.cost == cost &&
+      unless step.induction == move.induction &&
+          step.inductionSummary == move.inductionSummary &&
+          step.preparation == move.preparation &&
+          step.closure == move.closure && step.cost == cost &&
           (step.action.group == .close || step.cost >= max 1 move.cost) &&
           step.cost <= step.remaining && step.strength > 0 do
         throwError "waterfall plan cost mismatch"
@@ -219,7 +225,8 @@ public def replay (plan : Plan) (rules : Array (TSyntax `term)) (key : String)
       inputState.restore true
       stats.modify fun s => { s with strength := step.strength }
       unless ← hooks.bool { span with
-          phase := .action, action := some step.action, induction := move.induction, label := move.label }
+          phase := .action, action := some step.action, induction := move.induction,
+          closure := move.closure, label := move.label }
           (attempt { effort := plan.steps.size, attemptHeartbeats := plan.attemptHeartbeats } stats move hooks.charge) do
         throwError "waterfall plan action failed"
       let children ← getUnsolvedGoals

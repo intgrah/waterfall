@@ -61,7 +61,7 @@ elab "check_bounded_prelude" : tactic => do
   let current ← IO.mkRef 0
   let counts ← IO.mkRef (#[] : Array Nat)
   let hooks : Hooks := {
-    prelude := fun _ => pure #[{ depth := 1, attempts := 128 }]
+    prelude := fun _ _ => pure #[{ depth := 1, attempts := 128 }]
     extraMoves := fun _ _ _ _ group => do
       if group != .basic then return #[]
       return (List.range 20).toArray.map fun _ => {

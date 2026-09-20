@@ -47,7 +47,7 @@ public def blockedPremises (g : MVarId) : TacticM (Array Move) := g.withContext 
           setGoals [positive.mvarId, negative.mvarId] }
   return out
 
-private def exposesBlockedPremise (g : MVarId) : TacticM Bool := withoutModifyingState do
+public def exposesBlockedPremise (g : MVarId) : TacticM Bool := withoutModifyingState do
   try
     g.withContext do
       let (introduced, child) ← g.intros
@@ -61,16 +61,23 @@ public def prelude (goals : List MVarId) : TacticM (Array PreludeTrial) := do
     if ← exposesBlockedPremise g then return #[{ depth := 5 }]
   return #[]
 
-/-- Add critic proposals to an arbitrary policy. `early` enables the bounded
-goal-directed prelude used by ordinary backtracking search. -/
-public def hooks (inner : Hooks := {}) (early := false) : Hooks := { inner with
+public def needsPrelude (goals : List MVarId) : TacticM Bool := do
+  for g in goals do
+    if ← exposesBlockedPremise g then return true
+  return false
+
+/-- Add critic proposals to an arbitrary policy. `early` prioritizes goal
+shaping that exposes a critic; `speculate` also requests the legacy bounded
+depth trial. They are separate so a general scheduler need not use a magic
+depth. -/
+public def hooks (inner : Hooks := {}) (early := false) (speculate := early) : Hooks := { inner with
   extraMoves := fun g rules strength remaining group => do
     let original ← inner.extraMoves g rules strength remaining group
     if group == .hypotheses then return original ++ (← blockedPremises g)
     return original
-  prelude := fun goals => do
-    let original ← inner.prelude goals
-    if early then return (← prelude goals) ++ original
+  prelude := fun cfg goals => do
+    let original ← inner.prelude cfg goals
+    if speculate then return (← prelude goals) ++ original
     return original
   order := fun g span candidates => do
     let requested ← inner.order g span candidates

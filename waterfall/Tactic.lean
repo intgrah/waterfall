@@ -2,6 +2,7 @@ module
 public import waterfall.Parallel
 public import waterfall.Committed
 public import waterfall.Critics
+public import waterfall.Scheduling
 public import waterfall.Suggestions
 
 meta section
@@ -25,7 +26,9 @@ public inductive Mode where
 
 /-- The standard callbacks for a mode, available for programmatic adaptation. -/
 public def Mode.hooks : Mode → Hooks
-  | .search => Critics.hooks (early := true)
+  | .search => Critics.hooks
+      (InductionPlan.hooks (Scheduling.hooks (activate := Critics.needsPrelude)))
+      (early := true) (speculate := false)
   | .committed => Critics.hooks Committed.hooks
 
 /-- User-facing tactic options. The inherited `Config` fields control resources
